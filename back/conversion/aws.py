@@ -1,15 +1,23 @@
 import os
 
 def lambda_handler(event, context):
-    # Verificar si `dot` está en el PATH
-    dot_path = '/opt/bin/dot'
-    if os.path.exists(dot_path):
-        print(f"Graphviz dot found at {dot_path}")
-        os.system(f"{dot_path} -V")  # Ejecuta el comando dot para verificar su versión
-    else:
-        print("Graphviz dot not found!")
+    # Verificar si 'dot' está en /opt/bin
+    os.environ["PATH"] += ":/opt/bin"
+
+    print("PATH:", os.environ["PATH"])
+    
+    # Ejecutar el comando dot para verificar su versión
+    result = os.system("dot -V")
+    
+    if result != 0:
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Graphviz no está disponible o no se encuentra en el PATH.'}),
+            'headers': {'Content-Type': 'application/json'}
+        }
     
     return {
         'statusCode': 200,
-        'body': "Check the logs for Graphviz status."
+        'body': json.dumps({'message': 'Graphviz está disponible y el diagrama fue generado correctamente.'}),
+        'headers': {'Content-Type': 'application/json'}
     }
