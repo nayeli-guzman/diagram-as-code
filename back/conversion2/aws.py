@@ -2,7 +2,7 @@ import boto3, json, os
 from eralchemy import render_er
 import tempfile
 
-bucket_name = "er-bucket"
+bucket_name = "e-rbucket"
 output_path = "/tmp/diagrama_er.png"
 
 def lambda_handler(event, context):
