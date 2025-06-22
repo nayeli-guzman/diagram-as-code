@@ -1,0 +1,532 @@
+import React, { useState, useCallback, useRef } from "react";
+import Editor from "@monaco-editor/react";
+import {
+  Play,
+  Upload,
+  Github,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  LogOut,
+  FileText,
+  ImageIcon,
+  FileImage,
+  FileText as FilePdf,
+} from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
+import { diagramsAPI, githubAPI } from "../utils/api";
+import toast from "react-hot-toast";
+import type { DiagramType } from "../types";
+import { saveAs } from "file-saver";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+
+const DiagramEditor: React.FC = () => {
+  const [code, setCode] = useState("");
+  const [diagramType, setDiagramType] = useState<DiagramType>("aws");
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
+    null
+  );
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [githubUrl, setGithubUrl] = useState("");
+  const [zoom, setZoom] = useState(100);
+  const [isExporting, setIsExporting] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const { user, logout } = useAuth();
+
+  const diagramTypes: {
+    value: DiagramType;
+    label: string;
+    description: string;
+  }[] = [
+    { value: "aws", label: "AWS", description: "Amazon Web Services" },
+    { value: "azure", label: "Azure", description: "Microsoft Azure" },
+    {
+      value: "gcp",
+      label: "Google Cloud",
+      description: "Google Cloud Platform",
+    },
+    { value: "k8s", label: "Kubernetes", description: "Kubernetes Resources" },
+    { value: "network", label: "Network", description: "Network Architecture" },
+    {
+      value: "onprem",
+      label: "On-Premise",
+      description: "On-Premise Infrastructure",
+    },
+    {
+      value: "programming",
+      label: "Programming",
+      description: "Programming Languages",
+    },
+    { value: "generic", label: "Generic", description: "Generic Components" },
+  ];
+
+  const getPlaceholderCode = (type: DiagramType): string => {
+    const placeholders = {
+      aws: `from diagrams import Diagram
+from diagrams.aws.compute import EC2
+from diagrams.aws.database import RDS
+from diagrams.aws.network import ELB
+
+with Diagram("Web Service", show=False):
+    lb = ELB("Load Balancer")
+    web = EC2("Web Server")
+    db = RDS("Database")
+    
+    lb >> web >> db`,
+      azure: `from diagrams import Diagram
+from diagrams.azure.compute import VirtualMachines
+from diagrams.azure.database import SQLDatabases
+from diagrams.azure.network import LoadBalancers
+
+with Diagram("Azure Architecture", show=False):
+    lb = LoadBalancers("Load Balancer")
+    vm = VirtualMachines("VM")
+    db = SQLDatabases("SQL Database")
+    
+    lb >> vm >> db`,
+      gcp: `from diagrams import Diagram
+from diagrams.gcp.compute import ComputeEngine
+from diagrams.gcp.database import SQL
+from diagrams.gcp.network import LoadBalancing
+
+with Diagram("GCP Service", show=False):
+    lb = LoadBalancing("Load Balancer")
+    gce = ComputeEngine("Compute Engine")
+    sql = SQL("Cloud SQL")
+    
+    lb >> gce >> sql`,
+      k8s: `from diagrams import Diagram
+from diagrams.k8s.compute import Pod
+from diagrams.k8s.network import Service
+from diagrams.k8s.storage import PersistentVolume
+
+with Diagram("Kubernetes Cluster", show=False):
+    svc = Service("Service")
+    pod = Pod("Pod")
+    pv = PersistentVolume("Storage")
+    
+    svc >> pod >> pv`,
+      network: `from diagrams import Diagram
+from diagrams.generic.network import Router, Switch
+from diagrams.generic.compute import Rack
+
+with Diagram("Network Topology", show=False):
+    router = Router("Router")
+    switch = Switch("Switch")
+    server = Rack("Server")
+    
+    router >> switch >> server`,
+      onprem: `from diagrams import Diagram
+from diagrams.onprem.compute import Server
+from diagrams.onprem.database import PostgreSQL
+from diagrams.onprem.network import Nginx
+
+with Diagram("On-Premise Setup", show=False):
+    nginx = Nginx("Load Balancer")
+    server = Server("App Server")
+    db = PostgreSQL("Database")
+    
+    nginx >> server >> db`,
+      programming: `from diagrams import Diagram
+from diagrams.programming.language import Python
+from diagrams.programming.framework import React
+from diagrams.programming.flowchart import Database
+
+with Diagram("Tech Stack", show=False):
+    frontend = React("Frontend")
+    backend = Python("Backend")
+    db = Database("Database")
+    
+    frontend >> backend >> db`,
+      generic: `from diagrams import Diagram
+from diagrams.generic.blank import Blank
+
+with Diagram("Generic Diagram", show=False):
+    a = Blank("Component A")
+    b = Blank("Component B")
+    c = Blank("Component C")
+    
+    a >> b >> c`,
+    };
+
+    return placeholders[type];
+  };
+
+  const handleGenerateDiagram = async () => {
+    if (!code.trim()) {
+      toast.error("Por favor, ingresa la definición del diagrama");
+      return;
+    }
+
+    if (!code.includes("from diagrams")) {
+      toast.error("El código debe incluir importaciones de diagrams");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const result = await diagramsAPI.generate(code, diagramType);
+      setGeneratedImageUrl(result.imageUrl);
+      toast.success("¡Diagrama generado correctamente!");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Error al generar el diagrama"
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleLoadFromGithub = async () => {
+    if (!githubUrl.trim()) {
+      toast.error("Por favor, ingresa una URL de GitHub");
+      return;
+    }
+
+    try {
+      const content = await githubAPI.fetchFile(githubUrl);
+      setCode(content);
+      toast.success("Archivo cargado desde GitHub");
+      setGithubUrl("");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Error al cargar el archivo"
+      );
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        setCode(content);
+        toast.success("Archivo cargado correctamente");
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Export functions
+  const handleExportSVG = async () => {
+    if (!generatedImageUrl) return;
+
+    setIsExporting(true);
+    try {
+      const response = await fetch(generatedImageUrl);
+      const blob = await response.blob();
+      saveAs(blob, `diagram-${diagramType}-${Date.now()}.svg`);
+      toast.success("Diagrama SVG descargado correctamente");
+    } catch {
+      toast.error("Error al descargar el diagrama SVG");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPNG = async () => {
+    if (!imageRef.current) return;
+
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(imageRef.current, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: true,
+      });
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          saveAs(blob, `diagram-${diagramType}-${Date.now()}.png`);
+          toast.success("Diagrama PNG descargado correctamente");
+        }
+        setIsExporting(false);
+      }, "image/png");
+    } catch {
+      toast.error("Error al descargar el diagrama PNG");
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!imageRef.current) return;
+
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(imageRef.current, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: true,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+        unit: "px",
+        format: [canvas.width, canvas.height],
+      });
+
+      pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+      pdf.save(`diagram-${diagramType}-${Date.now()}.pdf`);
+      toast.success("Diagrama PDF descargado correctamente");
+    } catch {
+      toast.error("Error al descargar el diagrama PDF");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 25, 200));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 25, 25));
+  const handleResetZoom = () => setZoom(100);
+
+  const handleTypeChange = useCallback(
+    (newType: DiagramType) => {
+      setDiagramType(newType);
+      if (!code.trim()) {
+        setCode(getPlaceholderCode(newType));
+      }
+    },
+    [code]
+  );
+
+  // Initialize with placeholder code
+  React.useEffect(() => {
+    if (!code.trim()) {
+      setCode(getPlaceholderCode(diagramType));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diagramType]); // Only depend on diagramType to avoid infinite loops
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          {" "}
+          <div className="flex items-center space-x-4">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Diagram Generator
+            </h1>
+            <span className="text-sm text-gray-500">
+              Powered by Diagrams.py
+            </span>
+            <span className="text-xs text-blue-600 font-medium">
+              • Creado por "Todo va a estar Bien"
+            </span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-gray-600">
+              Bienvenido, {user?.name}
+            </span>
+            <button
+              onClick={logout}
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <LogOut size={16} />
+              <span>Cerrar Sesión</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex">
+        {/* Left Panel - Editor */}
+        <div className="w-1/2 flex flex-col bg-white border-r border-gray-200">
+          {/* Controls */}
+          <div className="p-4 border-b border-gray-200 space-y-4">
+            {/* Diagram Type Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tipo de Diagrama
+              </label>
+              <select
+                value={diagramType}
+                onChange={(e) =>
+                  handleTypeChange(e.target.value as DiagramType)
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {diagramTypes.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label} - {type.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* GitHub URL Input */}
+            <div className="flex space-x-2">
+              <input
+                type="url"
+                placeholder="URL del archivo Python en GitHub..."
+                value={githubUrl}
+                onChange={(e) => setGithubUrl(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleLoadFromGithub}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center space-x-2"
+              >
+                <Github size={16} />
+                <span>Cargar</span>
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-2">
+              <button
+                onClick={handleGenerateDiagram}
+                disabled={isGenerating || !code.trim()}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Play size={16} />
+                <span>
+                  {isGenerating ? "Generando..." : "Generar Diagrama"}
+                </span>
+              </button>
+
+              <label className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 cursor-pointer">
+                <Upload size={16} />
+                <span>Subir Archivo</span>
+                <input
+                  type="file"
+                  accept=".py,.txt"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Monaco Editor */}
+          <div className="flex-1">
+            <Editor
+              height="100%"
+              defaultLanguage="python"
+              value={code}
+              onChange={(value) => setCode(value || "")}
+              theme="vs-dark"
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 14,
+                lineNumbers: "on",
+                wordWrap: "on",
+                automaticLayout: true,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Right Panel - Preview */}
+        <div className="w-1/2 flex flex-col bg-gray-50">
+          {/* Preview Controls */}
+          <div className="p-4 bg-white border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900">
+                Vista Previa
+              </h3>
+              <div className="flex items-center space-x-2">
+                {generatedImageUrl && (
+                  <>
+                    <button
+                      onClick={handleExportSVG}
+                      disabled={isExporting}
+                      className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ImageIcon size={16} />
+                      <span>{isExporting ? "Exportando..." : "SVG"}</span>
+                    </button>
+
+                    <button
+                      onClick={handleExportPNG}
+                      disabled={isExporting}
+                      className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <FileImage size={16} />
+                      <span>{isExporting ? "Exportando..." : "PNG"}</span>
+                    </button>
+
+                    <button
+                      onClick={handleExportPDF}
+                      disabled={isExporting}
+                      className="flex items-center space-x-2 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <FilePdf size={16} />
+                      <span>{isExporting ? "Exportando..." : "PDF"}</span>
+                    </button>
+                  </>
+                )}
+                <div className="flex items-center space-x-1 border border-gray-300 rounded-md">
+                  <button
+                    onClick={handleZoomOut}
+                    className="p-2 hover:bg-gray-100"
+                    disabled={zoom <= 25}
+                  >
+                    <ZoomOut size={16} />
+                  </button>
+                  <span className="px-2 text-sm font-medium min-w-[60px] text-center">
+                    {zoom}%
+                  </span>
+                  <button
+                    onClick={handleZoomIn}
+                    className="p-2 hover:bg-gray-100"
+                    disabled={zoom >= 200}
+                  >
+                    <ZoomIn size={16} />
+                  </button>
+                  <button
+                    onClick={handleResetZoom}
+                    className="p-2 hover:bg-gray-100 border-l border-gray-300"
+                  >
+                    <RotateCcw size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Preview Content */}
+          <div className="flex-1 overflow-auto p-4">
+            {isGenerating ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Generando diagrama...</p>
+                </div>
+              </div>
+            ) : generatedImageUrl ? (
+              <div className="flex justify-center">
+                <img
+                  ref={imageRef}
+                  src={generatedImageUrl}
+                  alt="Generated Diagram"
+                  style={{ transform: `scale(${zoom / 100})` }}
+                  className="max-w-none transition-transform duration-200"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="text-center">
+                  <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+                  <p>
+                    Escribe tu código Python y haz clic en "Generar Diagrama"
+                  </p>
+                  <p className="text-sm mt-2">
+                    Usa la biblioteca Diagrams.py para crear diagramas de
+                    arquitectura
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DiagramEditor;
