@@ -69,13 +69,32 @@ def lambda_handler(event, context):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".dsl", mode='w') as dsl_file:
             dsl_file.write(body["dsl"])
             dsl_path = dsl_file.name
+            print(f"DSL Path creado: {dsl_path}")  # Verifica la ruta del archivo temporal
+
+        # Verificar si el archivo temporal se ha creado correctamente
+        if not os.path.exists(dsl_path):
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': f"El archivo DSL no se creó correctamente: {dsl_path}"}),
+                'headers': {'Content-Type': 'application/json'}
+            }
 
         # Renderizar como imagen PNG
+        print(f"Generando diagrama ER en {output_path}")
         render_er(dsl_path, output_path)
+
+        # Verificar si la imagen se generó correctamente
+        if not os.path.exists(output_path):
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': f"El archivo de imagen no se generó correctamente: {output_path}"}),
+                'headers': {'Content-Type': 'application/json'}
+            }
 
         # Subir a S3
         s3 = boto3.client("s3")
         s3_key = f"er-diagrama-{user_id}.png"
+        print(f"Subiendo el archivo {output_path} a S3 con la clave {s3_key}")
         s3.upload_file(output_path, bucket_name, s3_key)
 
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
