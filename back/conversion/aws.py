@@ -41,6 +41,9 @@ def lambda_handler(event, context):
         }
 
     code = body["code"]
+
+    print(code)
+
     try:
         safe_locals = {
             'Diagram': Diagram,
@@ -52,7 +55,7 @@ def lambda_handler(event, context):
             'Redshift': Redshift,
             'Github': Github,
             'Users': Users,
-            'Cluster': Diagram.Cluster,
+            'Cluster': Cluster,
         }
         
         exec(code, {}, safe_locals)
