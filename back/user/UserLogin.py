@@ -2,19 +2,27 @@ import boto3
 import hashlib
 import bcrypt
 import uuid  # Genera valores únicos
-from Utils import load_body
 from datetime import datetime, timedelta
+import json
+
+def load_body(event):
+    if 'body' not in event:
+        return event
+    
+    if isinstance(event["body"], dict):
+        return event['body']
+    else:
+        return json.loads(event['body'])
 
 # Expire time
 expire_time = timedelta(hours=5)
 
-table_users = "ab_usuarios"
-table_tokens = "ab_tokens_acceso"
+table_users = 'usuarios'
+table_tokens = table_users + '-token'
 
 # Hashear contraseña
 def verify_password(password, hashed):
     return bcrypt.checkpw(password.encode(), hashed.encode())
-
 
 
 def lambda_handler(event, context):

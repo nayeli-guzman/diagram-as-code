@@ -1,45 +1,55 @@
 import boto3
+from datetime import datetime
 import json
-import time
+
+table_user = 'usuarios'
+table_token = table_user + '-token'
+
+def load_body(event):
+    if 'body' not in event:
+        return event
+    
+    if isinstance(event["body"], dict):
+        return event['body']
+    else:
+        return json.loads(event['body'])
+
 
 def lambda_handler(event, context):
-    # Leer tenant_id y token desde el body
-    body = json.loads(event.get('body') or '{}')
+
+    print(event)
+
+    body = load_body(event)
+
     token = body.get('token')
     tenant_id = body.get('tenant_id')
 
-    if not token or not tenant_id:
-        return {
-            'statusCode': 400,
-            'body': json.dumps({'error': 'token and tenant_id are required'})
-        }
-
     dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table('ab_tokens_acceso')
-    resp = table.get_item(Key={'token': token, 'tenant_id': tenant_id})
-    if 'Item' not in resp:
+    table = dynamodb.Table(table_token)
+    response = table.get_item(
+        Key={
+            'token': token,
+            "tenant_id": tenant_id
+        }
+    )
+    if 'Item' not in response or response['Item'].get('tenant_id') != tenant_id:
+        print("error with ", tenant_id, " response: ", response)
         return {
             'statusCode': 403,
-            'body': json.dumps({'error': 'Token no existe'})
+            'body': 'Token no existe'
         }
+    else:
+        expires = response['Item']['expires']
+        print("expires ", expires)
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if now > expires:
+            return {
+                'statusCode': 403,
+                'body': 'Token expirado'
+            }
 
-    item = resp['Item']
-    if item.get('tenant_id') != tenant_id:
-        return {
-            'statusCode': 403,
-            'body': json.dumps({'error': 'Tenant inválido'})
-        }
-
-    expires_ts = item['expires_ts']
-    now_ts = int(time.time())
-    if now_ts > expires_ts:
-        return {
-            'statusCode': 403,
-            'body': json.dumps({'error': 'Token expirado'})
-        }
-
-    # Si es válido, retornamos HTTP 200
+    print("success")
     return {
         'statusCode': 200,
-        'body': json.dumps({'message': 'Token válido'})
+        'body': 'Token válido'
     }

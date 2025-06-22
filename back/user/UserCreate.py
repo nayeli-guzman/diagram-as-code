@@ -1,8 +1,19 @@
 import boto3
 import bcrypt
 import json
-from Utils import load_body
 
+table_user = 'usuarios'
+table_token = table_user + '-token'
+
+def load_body(event):
+    if 'body' not in event:
+        return event
+    
+    if isinstance(event["body"], dict):
+        return event['body']
+    else:
+        return json.loads(event['body'])
+    
 # Hashear contraseña
 def hash_password(password):
     # Retorna la contraseña hasheada
@@ -23,7 +34,7 @@ def lambda_handler(event, context):
             }
 
         dynamodb = boto3.resource('dynamodb')
-        ab_usuarios = dynamodb.Table('ab_usuarios')
+        ab_usuarios = dynamodb.Table(table_user)
 
         check = ab_usuarios.get_item(
             Key={
