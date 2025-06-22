@@ -1,0 +1,29 @@
+org: adrianurbinamendoza
+service: erd-generator
+
+plugins:
+  - serverless-python-requirements
+
+provider:
+  name: aws
+  runtime: python3.13
+  region: us-east-1
+  timeout: 30
+  iam:
+    role: arn:aws:iam::254780740814:role/LabRole
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer: false
+
+functions:
+  generate-erd:
+    handler: aws.lambda_handler
+    events:
+      - http:
+          path: /erd
+          method: post
+          cors: true
+    layers:
+      - arn:aws:lambda:us-east-1:254780740814:layer:graphviz-layer:3
