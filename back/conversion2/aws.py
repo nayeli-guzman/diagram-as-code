@@ -98,8 +98,14 @@ def lambda_handler(event, context):
 
         # Renderizar como imagen PNG
         print(f"Generando diagrama ER en {output_path}")
+        
+        # Verificar si el DSL parece una URL de SQLAlchemy (mysql, postgresql, etc.)
         try:
-            render_er(dsl_path, output_path)
+            if body["dsl"].strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://")):
+                print("Detectado SQLAlchemy URL, pasando directamente a renderización.")
+                render_er(body["dsl"], output_path)  # Si es una URL SQLAlchemy
+            else:
+                render_er(dsl_path, output_path)  # Si es un archivo .dsl
         except Exception as e:
             print(f"Error durante el renderizado: {str(e)}")
             return {
