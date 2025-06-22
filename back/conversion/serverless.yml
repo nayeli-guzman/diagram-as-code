@@ -6,7 +6,7 @@ plugins:
 
 provider:
   name: aws
-  runtime: python3.12
+  runtime: python3.13
   timeout: 30
   region: us-east-1
   iam:
@@ -16,13 +16,6 @@ custom:
   pythonRequirements:
     dockerizePip: true
     layer: false
-  documentation:
-    api:
-      info:
-        version: '1.0.0'
-        title: conversion
-        description: API para registrar, validar y autenticar usuarios
-    models:
 
 functions:
   conversion-aws:
@@ -35,4 +28,3 @@ functions:
           integration: lambda-proxy
     layers:
       - arn:aws:lambda:us-east-1:254780740814:layer:graphviz-layer:1
-
