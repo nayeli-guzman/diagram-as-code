@@ -19,6 +19,17 @@ def lambda_handler(event, context):
         }
 
     try:
+        # Verificar si /tmp existe y es escribible
+        if not os.path.exists('/tmp'):
+            os.makedirs('/tmp')  # Crear directorio si no existe
+
+        if not os.access('/tmp', os.W_OK):
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': 'El directorio /tmp no es escribible'}),
+                'headers': {'Content-Type': 'application/json'}
+            }
+
         # Escribir DSL a archivo temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix=".dsl", mode='w') as dsl_file:
             dsl_file.write(dsl)
