@@ -3,6 +3,7 @@ service: diagrama-hack
 
 plugins:
   - serverless-python-requirements
+  - serverless-aws-documentation
 
 provider:
   name: aws
@@ -11,98 +12,99 @@ provider:
   region: us-east-1
   iam:
     role: arn:aws:iam::254780740814:role/LabRole
-  environment:
-    DIAGRAM_BUCKET: cad-diagrama
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - s3:PutObject
-        - s3:GetObject
-      Resource:
-        - arn:aws:s3:::cad-diagrama/*
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer: false
+    useDownloadCache: false
+    useStaticCache: false
+
+  documentation:
+    api:
+      info:
+        version: '1.0.0'
+        title: Abarrotes Usuarios API
+        description: API para registrar, validar y autenticar usuarios
+    models:
+      - name: UserRequest
+        contentType: 'application/json'
+        schema:
+          type: object
+          properties:
+            user_id:
+              type: string
+              description: "User ID (correo electrónico)"
+            tenant_id:
+              type: string
+              description: "Tenant ID (nombre del establecimiento)"
+            password:
+              type: string
+              description: "User password"
+      - name: UserValidateRequest
+        contentType: 'application/json'
+        schema:
+          type: object
+          properties:
+            token:
+              type: string
+              description: "Token por validar al lambda authorizer"
+            tenant_id:
+              type: string
+              description: "Tenant ID (nombre del establecimiento)"
 
 functions:
   registrar:
     handler: UserCreate.lambda_handler
+    documentation:
+      summary: Registrar usuario
+      requestModels:
+        'application/json': UserRequest
     events:
       - http:
           path: /usuarios/registrar
           method: post
           cors: true
-          integration: lambda-proxy
+          integration: lambda
+
+  validar:
+    handler: UserValidar.lambda_handler
+    documentation:
+      summary: Validar usuario
+      requestModels:
+        'application/json': UserRequest
+    events:
+      - http:
+          path: /usuarios/validar
+          method: post
+          cors: true
+          integration: lambda
 
   login:
     handler: UserLogin.lambda_handler
+    documentation:
+      summary: Login usuario
+      requestModels:
+        'application/json': UserRequest
     events:
       - http:
           path: /usuarios/login
           method: post
           cors: true
-          integration: lambda-proxy
+          integration: lambda
 
-  authorizer:
-    handler: UserValidar.lambda_handler
-
-  generarDiagrama:
-    handler: DiagramGen.lambda_handler
-    # layers:
-    #   - { Ref: GraphvizPythonLambdaLayer }
+  swaggerui:
+    handler: swagger.lambda_handler
     events:
       - http:
-          path: /diagramas
-          method: post
+          path: /docs
+          method: get
           cors: true
-          integration: lambda-proxy
-          authorizer:
-            type: request
-            authorizerId:
-              Fn::GetAtt:
-                - AuthorizerLambdaFunction
-                - Arn
 
-resources:
-  Resources:
-    AbUsuariosTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ab_usuarios
-        AttributeDefinitions:
-          - AttributeName: tenant_id
-            AttributeType: S
-          - AttributeName: user_id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: tenant_id
-            KeyType: HASH
-          - AttributeName: user_id
-            KeyType: RANGE
-        BillingMode: PAY_PER_REQUEST
-
-    AbTokensTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ab_tokens_acceso
-        AttributeDefinitions:
-          - AttributeName: token
-            AttributeType: S
-          - AttributeName: tenant_id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: token
-            KeyType: HASH
-          - AttributeName: tenant_id
-            KeyType: RANGE
-        BillingMode: PAY_PER_REQUEST
-        TimeToLiveSpecification:
-          AttributeName: expires_ts
-          Enabled: true
-
-    DiagramasBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: cad-diagrama
-        CorsConfiguration:
-          CorsRules:
-            - AllowedOrigins: ["*"]
-              AllowedMethods: ["GET","PUT","POST"]
-              AllowedHeaders: ["*"]
+  openapi:
+    handler: swagger.openapi_handler
+    events:
+      - http:
+          path: /openapi.yaml
+          method: get
+          cors: true

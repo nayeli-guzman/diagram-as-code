@@ -1,70 +1,64 @@
 import boto3
+import hashlib
 import bcrypt
-import uuid
-import json
-import time
+import uuid  # Genera valores únicos
+from Utils import load_body
+from datetime import datetime, timedelta
 
-HEADERS = {
-    "Access-Control-Allow-Origin": "*",
-    "Content-Type": "application/json"
-}
+# Expire time
+expire_time = timedelta(hours=5)
 
-# Caducidad en segundos (5 horas)
-EXPIRE_SECONDS = 5 * 3600
+table_users = "ab_usuarios"
+table_tokens = "ab_tokens_acceso"
+
+# Hashear contraseña
+def verify_password(password, hashed):
+    return bcrypt.checkpw(password.encode(), hashed.encode())
+
+
 
 def lambda_handler(event, context):
-    try:
-        # Parsea el cuerpo JSON directamente
-        body = json.loads(event.get('body') or '{}')
-        user_id   = body.get('user_id')
-        tenant_id = body.get('tenant_id')
-        password  = body.get('password')
+    body = load_body(event)
 
-        if not all([user_id, tenant_id, password]):
-            return {
-                'statusCode': 400,
-                'headers': HEADERS,
-                'body': json.dumps({'error': 'user_id, tenant_id and password are required'})
-            }
+    user_id = body.get('user_id')
+    tenant_id = body.get('tenant_id')
+    password = body.get('password')
 
-        dynamodb = boto3.resource('dynamodb')
-        table_users = dynamodb.Table('ab_usuarios')
-        resp = table_users.get_item(Key={'tenant_id': tenant_id, 'user_id': user_id})
-        if 'Item' not in resp:
-            return {
-                'statusCode': 403,
-                'headers': HEADERS,
-                'body': json.dumps({'error': 'Invalid credentials'})
-            }
-
-        if not bcrypt.checkpw(password.encode(), resp['Item']['password'].encode()):
-            return {
-                'statusCode': 403,
-                'headers': HEADERS,
-                'body': json.dumps({'error': 'Invalid credentials'})
-            }
-
-        token = str(uuid.uuid4())
-        now_ts = int(time.time())
-        expires_ts = now_ts + EXPIRE_SECONDS
-
-        table_tokens = dynamodb.Table('ab_tokens_acceso')
-        table_tokens.put_item(Item={
-            'token': token,
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table(table_users)
+    response = table.get_item(
+        Key={
             'tenant_id': tenant_id,
-            'user_id': user_id,
-            'expires_ts': expires_ts
-        })
-
-        return {
-            'statusCode': 200,
-            'headers': HEADERS,
-            'body': json.dumps({'token': token, 'expires_ts': expires_ts})
+            'user_id': user_id
         }
-
-    except Exception as e:
+    )
+    if 'Item' not in response:
         return {
-            'statusCode': 500,
-            'headers': HEADERS,
-            'body': json.dumps({'error': str(e)})
+            'statusCode': 403,
+            'body': 'Usuario no existe'
         }
+    else:
+        hashed_password_bd = response['Item']['password']
+        if verify_password(password, hashed_password_bd):
+            # Genera token
+            token = str(uuid.uuid4())
+            fecha_hora_exp = datetime.now() + expire_time
+            item_token = {
+                'token': token,
+                'user_id': user_id,
+                "tenant_id": tenant_id,
+                'expires': fecha_hora_exp.strftime('%Y-%m-%d %H:%M:%S')
+            }
+            table = dynamodb.Table(table_tokens)
+            dynamodbResponse = table.put_item(Item=item_token)
+        else:
+            return {
+                'statusCode': 403,
+                'body': 'Password incorrecto'
+            }
+
+
+    return {
+        'statusCode': 200,
+        'token': token
+    }
