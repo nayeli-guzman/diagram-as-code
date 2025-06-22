@@ -99,10 +99,12 @@ def lambda_handler(event, context):
         # Renderizar como imagen PNG
         print(f"Generando diagrama ER en {output_path}")
         
-        # Revisar si el DSL parece una URL SQLAlchemy (mysql://, sqlite://, etc.)
-        is_sqlalchemy_url = body["dsl"].strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://"))
+        # Comprobar si el DSL parece ser una URL SQLAlchemy (mysql://, sqlite://, etc.)
+        is_sqlalchemy_url = False
+        # Revisamos si el DSL tiene el formato de una URL SQLAlchemy
+        if body["dsl"].strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://")):
+            is_sqlalchemy_url = True
         
-        # Si parece una URL de SQLAlchemy, procesarla directamente
         if is_sqlalchemy_url:
             print("Detectado SQLAlchemy URL, pasando directamente a renderización.")
             try:
