@@ -52,6 +52,7 @@ def lambda_handler(event, context):
     "from diagrams.aws.storage import S3\n" \
     "from diagrams.onprem.vcs import Github\n" \
     "from diagrams.onprem.client import Users\n\n" \
+    "import os\n" \
     "with Diagram(\"Clustered Web Services\", show=False):\n" \
     "    dns = Route53(\"dns\")\n" \
     "print(\"Files in /tmp:\", os.listdir(\"/tmp\"))\n" \
@@ -92,6 +93,7 @@ def lambda_handler(event, context):
             'Users': Users,
             'Cluster': Cluster,
             'Route53': Route53,
+            'os': os,
         }
 
         print(safe_locals)
