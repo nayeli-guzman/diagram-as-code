@@ -67,7 +67,9 @@ def lambda_handler(event, context):
 
         # Preprocesar el DSL: Limpiar caracteres de escape y saltos de línea
         dsl_cleaned = body["dsl"].replace("\\n", "\n").replace("\\t", "\t").strip()
-        print(f"DSL limpio:\n{dsl_cleaned}")  # Imprimir el contenido limpio del DSL
+        
+        # Agregar depuración para ver el DSL limpio
+        print(f"DSL limpio:\n{dsl_cleaned}")  # Verifica si el DSL se limpió correctamente
 
         # Escribir DSL limpio a archivo temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix=".dsl", mode='w') as dsl_file:
