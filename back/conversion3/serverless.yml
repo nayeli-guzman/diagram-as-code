@@ -1,0 +1,23 @@
+org: mateoismael
+service: json-diagram-generator
+
+provider:
+  name: aws
+  region: us-east-1
+  iam:
+    role: arn:aws:iam::111097882274:role/LabRole
+
+  ecr:
+    images:
+      generate-diagram:
+        path: .    # Debe usarse en minúsculas y con guiones
+
+functions:
+  generate-diagram:
+    image:
+      name: generate-diagram    # ahora cumple /^[a-z][a-z0-9-_]{1,31}$/
+    events:
+      - http:
+          path: /generate-diagram
+          method: post
+          cors: true
