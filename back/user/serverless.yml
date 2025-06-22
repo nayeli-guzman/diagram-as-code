@@ -1,0 +1,93 @@
+org: adrianurbinamendoza
+service: diagrama-hack
+
+plugins:
+  - serverless-python-requirements
+  - serverless-aws-documentation
+
+provider:
+  name: aws
+  runtime: python3.9
+  timeout: 30
+  region: us-east-1
+  iam:
+    role: arn:aws:iam::254780740814:role/LabRole
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer: false
+  documentation:
+    api:
+      info:
+        version: '1.0.0'
+        title: diagrama-hack
+        description: API para registrar, validar y autenticar usuarios
+    models:
+
+functions:
+  registrar:
+    handler: UserCreate.lambda_handler
+    events:
+      - http:
+          path: /usuarios/registrar
+          method: post
+          cors: true
+          integration: lambda-proxy
+
+  login:
+    handler: UserLogin.lambda_handler
+    events:
+      - http:
+          path: /usuarios/login
+          method: post
+          cors: true
+          integration: lambda-proxy
+
+  authorizer:
+    handler: UserValidar.lambda_handler
+
+  swaggerui:
+    handler: swagger.lambda_handler
+    events:
+      - http:
+          path: /docs
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    AbUsuariosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ab_usuarios
+        AttributeDefinitions:
+          - AttributeName: tenant_id
+            AttributeType: S
+          - AttributeName: user_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: tenant_id
+            KeyType: HASH
+          - AttributeName: user_id
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    AbTokensTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ab_tokens_acceso
+        AttributeDefinitions:
+          - AttributeName: token
+            AttributeType: S
+          - AttributeName: tenant_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: token
+            KeyType: HASH
+          - AttributeName: tenant_id
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TimeToLiveSpecification:
+          AttributeName: expires_ts
+          Enabled: true
