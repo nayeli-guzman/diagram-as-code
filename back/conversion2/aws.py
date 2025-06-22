@@ -5,13 +5,48 @@ import tempfile
 bucket_name = "e-rbucket"
 output_path = "/tmp/diagrama_er.png"
 
+# Nombre de la función Lambda de validación
+user_validar = f"diagram-usuarios-dev-validar"
+
 def lambda_handler(event, context):
     print(event)
-    body = json.loads(event["body"])
-    dsl = body.get("dsl")  # Código ER en formato DSL
-    user_id = body.get("user_id")
+    
+    # Entrada (json)
+    body = json.loads(event['body'])
+    
+    # Extraer token desde el header de autorización
+    token = event['headers']['Authorization']
+    tenant_id = body['tenant_id']
+    user_id = body['user_id']
 
-    if not dsl or not user_id:
+    # Proteger el Lambda: llamar a la función de validación del token
+    lambda_client = boto3.client('lambda')
+    payload = {
+        "token": token,
+        "tenant_id": tenant_id
+    }
+    
+    # Invocar la función de validación del token
+    invoke_response = lambda_client.invoke(
+        FunctionName=user_validar,
+        InvocationType='RequestResponse',
+        Payload=json.dumps(payload)
+    )
+    
+    # Leer la respuesta de la función de validación
+    response = json.loads(invoke_response['Payload'].read())
+    print(response)
+    
+    # Si la respuesta es 403, significa que el acceso no está autorizado
+    if response['statusCode'] == 403:
+        return {
+            'statusCode': 403,
+            'body': json.dumps({'status': 'Forbidden - Acceso No Autorizado'}),
+            'headers': {'Content-Type': 'application/json'}
+        }
+    
+    # Si el token es válido, continuar con la creación del diagrama
+    if not body.get("dsl") or not user_id:
         return {
             'statusCode': 400,
             'body': json.dumps({'error': 'Falta dsl o user_id'}),
@@ -32,7 +67,7 @@ def lambda_handler(event, context):
 
         # Escribir DSL a archivo temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix=".dsl", mode='w') as dsl_file:
-            dsl_file.write(dsl)
+            dsl_file.write(body["dsl"])
             dsl_path = dsl_file.name
 
         # Renderizar como imagen PNG
