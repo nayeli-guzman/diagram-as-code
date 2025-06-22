@@ -9,6 +9,7 @@ def lambda_handler(event, context):
     
     bin_dir = '/opt/bin'
     try:
+        print("sssss")
         bin_files = os.listdir(bin_dir)
         print(f"Contenido de {bin_dir}: {bin_files}")
         
@@ -19,6 +20,7 @@ def lambda_handler(event, context):
         }
         
     except FileNotFoundError:
+        print("gggg")
         pass
 
     # Ejecutar el comando dot para verificar su versión
