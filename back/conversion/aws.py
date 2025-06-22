@@ -6,12 +6,17 @@ def lambda_handler(event, context):
     print(os.environ["PATH"])
     os.environ["PATH"] += ":/opt/bin"
     print(os.environ["PATH"])
+    path_env = os.environ.get("PATH")
     
     bin_dir = ':/opt/bin'
     try:
+        path_directories = path_env.split(':')
+
+        # Imprimir cada directorio
+        for directory in path_directories:
+            print(f"Directorio: {directory}")
         print("sssss")
-        bin_files = os.listdir(bin_dir)
-        print(f"Contenido de {bin_dir}: {bin_files}")
+        
         
         return {
             'statusCode': 200,
