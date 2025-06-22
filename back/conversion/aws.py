@@ -91,7 +91,8 @@ def lambda_handler(event, context):
         }
 
         print(safe_locals)
-        modified_code = code.replace("with Diagram(\"Event Processing\", show=False):", f"with Diagram(\"Event Processing\", render=True, show=False, outformat='png', filename='/tmp/diagrama-{user_id}.png'):")
+        modified_code = code.replace("with Diagram(\"Event Processing\", show=False):",
+                        f"with Diagram(\"Event Processing\", show=False, outformat='png', filename='./tmp/diagrama.png'):")
 
         print(modified_code)
         exec(modified_code, {}, safe_locals)
