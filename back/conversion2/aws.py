@@ -1,4 +1,3 @@
-from fastapi import FastAPI
 import boto3, json, os
 from eralchemy import render_er
 import tempfile
