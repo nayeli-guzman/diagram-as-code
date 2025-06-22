@@ -8,7 +8,7 @@ output_path = "/tmp/diagrama_er.png"
 # Nombre de la función Lambda de validación
 user_validar = f"diagram-usuarios-dev-validar"
 
-def lambda_handler(event, context):
+def lambda_handler(event):
     print(event)
     
     # Entrada (json)
@@ -86,7 +86,7 @@ def lambda_handler(event, context):
 
         # Intentar importar graphviz para verificar que está disponible
         try:
-            import graphviz
+            import graphviz  # noqa: F401
             print("Graphviz importado correctamente")
         except Exception as e:
             print(f"Error al importar Graphviz: {str(e)}")
@@ -99,7 +99,12 @@ def lambda_handler(event, context):
         # Renderizar como imagen PNG
         print(f"Generando diagrama ER en {output_path}")
         try:
-            render_er(dsl_path, output_path)
+            # Validar que el DSL es una URL SQLAlchemy o un archivo compatible
+            # Si body["dsl"] parece una URL SQLAlchemy, pásala directamente
+            if body["dsl"].strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://")):
+                render_er(body["dsl"], output_path)
+            else:
+                render_er(dsl_path, output_path)
         except Exception as e:
             print(f"Error durante el renderizado: {str(e)}")
             return {
