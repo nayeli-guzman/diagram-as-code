@@ -1,54 +1,51 @@
-import os
-import json
-import tempfile
-import boto3
-import base64
+from fastapi import FastAPI
+import boto3, json, os
 from eralchemy import render_er
+import tempfile
+
+bucket_name = "er-bucket"
+output_path = "/tmp/diagrama_er.png"
 
 def lambda_handler(event, context):
-    os.environ["PATH"] += ":/opt/bin"
-    s3 = boto3.client("s3")
-    bucket_name = "e-rbucket"
+    print(event)
+    body = json.loads(event["body"])
+    dsl = body.get("dsl")  # Código ER en formato DSL
+    user_id = body.get("user_id")
+
+    if not dsl or not user_id:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': 'Falta dsl o user_id'}),
+            'headers': {'Content-Type': 'application/json'}
+        }
 
     try:
-        body = json.loads(event["body"])
-        dsl_text = body.get("dsl")
-
-        if not dsl_text:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "No se envió texto DSL"}),
-                "headers": {"Content-Type": "application/json"}
-            }
-
-        # Crear archivo temporal DSL
-        with tempfile.NamedTemporaryFile(mode='w+', suffix='.er', delete=False) as dsl_file:
-            dsl_file.write(dsl_text)
+        # Escribir DSL a archivo temporal
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".dsl", mode='w') as dsl_file:
+            dsl_file.write(dsl)
             dsl_path = dsl_file.name
 
-        # Generar imagen
-        out_path = dsl_path.replace('.er', '.png')
-        render_er(dsl_path, out_path)
+        # Renderizar como imagen PNG
+        render_er(dsl_path, output_path)
 
-        # Nombre único en S3
-        filename = f"erd_{context.aws_request_id}.png"
+        # Subir a S3
+        s3 = boto3.client("s3")
+        s3_key = f"er-diagrama-{user_id}.png"
+        s3.upload_file(output_path, bucket_name, s3_key)
 
-        # Subir imagen a S3
-        with open(out_path, "rb") as f:
-            s3.upload_fileobj(f, bucket_name, filename, ExtraArgs={"ACL": "public-read", "ContentType": "image/png"})
-
-        # Construir URL pública
-        file_url = f"https://{bucket_name}.s3.amazonaws.com/{filename}"
+        image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
 
         return {
-            "statusCode": 200,
-            "body": json.dumps({"url": file_url}),
-            "headers": {"Content-Type": "application/json"}
+            'statusCode': 200,
+            'body': json.dumps({'imageUrl': image_url}),
+            'headers': {'Content-Type': 'application/json'}
         }
 
     except Exception as e:
+        # Detallar el error
+        print(f"Error: {str(e)}")
         return {
-            "statusCode": 500,
-            "body": json.dumps({"error": str(e)}),
-            "headers": {"Content-Type": "application/json"}
+            'statusCode': 500,
+            'body': json.dumps({'error': f'Ocurrió un error: {str(e)}'}),
+            'headers': {'Content-Type': 'application/json'}
         }
