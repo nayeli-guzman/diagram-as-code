@@ -1,4 +1,5 @@
 import os
+import jsons
 
 def lambda_handler(event, context):
     # Verificar si 'dot' está en /opt/bin
