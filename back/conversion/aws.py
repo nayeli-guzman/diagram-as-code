@@ -12,6 +12,7 @@ from tempfile import NamedTemporaryFile
 import shutil
 import json
 import boto3
+import os
 
 user_validar = f"diagram-usuarios-dev-validar"
 bucket_name = "cad-diagrams"
@@ -75,6 +76,22 @@ def lambda_handler(event, context):
         handlers >> dw
     '''
     print(code)
+
+    print(os.environ["PATH"])
+    os.environ["PATH"] += ":/opt/bin"
+    print(os.environ["PATH"])
+    path_env = os.environ.get("PATH")
+    
+   
+    path_directories = path_env.split(':')
+    for directory in path_directories:
+        print(f"Contenido de {directory}:")
+        if os.path.exists(directory):
+            for file in os.listdir(directory):
+                print(f"  {file}")
+        else:
+            print("  Este directorio no existe.")
+    print("sssss")
 
     try:
         safe_locals = {
