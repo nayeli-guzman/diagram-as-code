@@ -13,6 +13,7 @@ import shutil
 import json
 import boto3
 import os
+import re
 
 user_validar = f"diagram-usuarios-dev-validar"
 bucket_name = "cad-diagrams"
@@ -67,9 +68,10 @@ def lambda_handler(event, context):
         }
 
         print(safe_locals)
-        modified_code = code.replace(r"^with Diagram\([^\)]*\):\n",
-                        f"with Diagram(\"Event Processing\", show=False, outformat='png', filename='/tmp/diagrama'):\n")
-
+        modified_code = re.sub(r"^with Diagram\([^\)]*\):\n", 
+                      r"with Diagram(\"gen\", show=False, outformat='png', filename='/tmp/diagrama'):\n", 
+                      code, flags=re.MULTILINE)
+        
         print(modified_code)
         print("Files in /tmp:", os.listdir("/tmp"))
 
