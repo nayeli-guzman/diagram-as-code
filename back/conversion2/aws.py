@@ -1,14 +1,20 @@
-import boto3, json, os
-from eralchemy import render_er
-import tempfile
+import boto3
+import json
+import os
 import re
+import tempfile
 import shutil
+from eralchemy import render_er
+from eralchemy.cst import GRAPHVIZ_EXECUTABLE
+from subprocess import run
 
+# Configuración
 bucket_name = "e-rbucket"
 output_path = "/tmp/diagrama_er.png"
-user_validar = f"diagram-usuarios-dev-validar"
+user_validar = "diagram-usuarios-dev-validar"
 
 def is_valid_sqlalchemy_url(dsl):
+    """Verifica si el DSL es una URL SQLAlchemy válida"""
     patterns = [
         r'^sqlite:///',
         r'^postgresql://',
@@ -18,89 +24,121 @@ def is_valid_sqlalchemy_url(dsl):
     ]
     return any(re.match(pattern, dsl.strip()) for pattern in patterns)
 
+def generate_diagram(dsl_content, output_path):
+    """Genera el diagrama ER usando diferentes métodos con fallback"""
+    methods = [
+        lambda: render_er(dsl_content, output_path),
+        lambda: generate_with_graphviz(dsl_content, output_path)
+    ]
+    
+    for method in methods:
+        try:
+            method()
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                return True
+        except Exception as e:
+            print(f"Método falló: {str(e)}")
+            continue
+    
+    return False
+
+def generate_with_graphviz(dsl_content, output_path):
+    """Genera el diagrama usando Graphviz directamente"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.dot', delete=False, dir='/tmp') as dot_file:
+        dot_path = dot_file.name
+        render_er(dsl_content, dot_path)
+    
+    cmd = [
+        GRAPHVIZ_EXECUTABLE,
+        '-Tpng',
+        '-o', output_path,
+        dot_path
+    ]
+    
+    result = run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Graphviz falló: {result.stderr}")
+
 def lambda_handler(event, context):
     try:
-        # [Sección de validación del token - mantener igual]
+        print("Inicio de la función Lambda")
+        print(f"Contenido de /tmp al inicio: {os.listdir('/tmp')}")
         
-        # Preprocesar el DSL
-        dsl_cleaned = body["dsl"].replace("\\n", "\n").replace("\\t", "\t").strip()
-        print(f"DSL recibido:\n{dsl_cleaned}")
-
-        # Asegurar que el directorio /tmp existe
+        # Parsear entrada
+        body = json.loads(event['body'])
+        token = event['headers']['Authorization']
+        tenant_id = body['tenant_id']
+        user_id = body['user_id']
+        dsl_content = body["dsl"].replace("\\n", "\n").replace("\\t", "\t").strip()
+        
+        print(f"DSL recibido:\n{dsl_content}")
+        
+        # Validar token (mantener tu lógica existente)
+        lambda_client = boto3.client('lambda')
+        payload = {"token": token, "tenant_id": tenant_id}
+        invoke_response = lambda_client.invoke(
+            FunctionName=user_validar,
+            InvocationType='RequestResponse',
+            Payload=json.dumps(payload)
+        )
+        response = json.loads(invoke_response['Payload'].read())
+        
+        if response['statusCode'] == 403:
+            return {
+                'statusCode': 403,
+                'body': json.dumps({'status': 'Forbidden - Acceso No Autorizado'}),
+                'headers': {'Content-Type': 'application/json'}
+            }
+        
+        # Preparar entorno
         os.makedirs("/tmp", exist_ok=True)
-
-        # Limpiar archivos previos
         if os.path.exists(output_path):
             os.remove(output_path)
-
-        # Crear archivo temporal con extensión .er (requerido por eralchemy)
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.er', delete=False, dir='/tmp') as tmp_file:
-            tmp_file.write(dsl_cleaned)
-            tmp_path = tmp_file.name
-            print(f"Archivo temporal creado en: {tmp_path}")
-
-        # Verificar contenido del archivo
-        with open(tmp_path, 'r') as f:
-            content = f.read()
-            if not content.strip():
-                raise ValueError("El archivo DSL está vacío")
-
-        # 1. Intento principal con render_er
-        try:
-            print("Intentando renderizar con eralchemy...")
-            render_er(tmp_path, output_path)
-            
-            if not os.path.exists(output_path):
-                raise RuntimeError("Render_er no generó el archivo de salida")
-                
-            print(f"Diagrama generado correctamente en {output_path}")
-
-        except Exception as e:
-            print(f"Error con render_er: {str(e)}")
-            # 2. Intento alternativo con system_graphviz
-            try:
-                from eralchemy.cst import GRAPHVIZ_EXECUTABLE
-                from subprocess import run
-                
-                dot_path = tmp_path + '.dot'
-                cmd = [
-                    GRAPHVIZ_EXECUTABLE,
-                    '-Tpng',
-                    '-o', output_path,
-                    dot_path
-                ]
-                
-                # Generar archivo .dot primero
-                from eralchemy import render_er
-                render_er(tmp_path, dot_path)
-                
-                print(f"Ejecutando: {' '.join(cmd)}")
-                result = run(cmd, capture_output=True, text=True)
-                
-                if result.returncode != 0:
-                    raise RuntimeError(f"Graphviz falló: {result.stderr}")
-                    
-            except Exception as fallback_e:
-                print(f"Error en método alternativo: {str(fallback_e)}")
-                raise RuntimeError(f"Todos los métodos fallaron: {str(e)} y {str(fallback_e)}")
-
-        # Verificar que la imagen se generó
-        if not os.path.exists(output_path):
-            raise RuntimeError("No se pudo generar el archivo de imagen después de todos los intentos")
         
-        # [Resto del código para subir a S3 - mantener igual]
-
+        # Procesar DSL
+        if is_valid_sqlalchemy_url(dsl_content):
+            print("Procesando como URL SQLAlchemy")
+            input_source = dsl_content
+        else:
+            print("Procesando como DSL estándar")
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.er', delete=False, dir='/tmp') as tmp_file:
+                tmp_file.write(dsl_content)
+                input_source = tmp_file.name
+            print(f"Archivo temporal creado en: {input_source}")
+        
+        # Generar diagrama
+        if not generate_diagram(input_source, output_path):
+            raise RuntimeError("Todos los métodos para generar el diagrama fallaron")
+        
+        print(f"Diagrama generado en {output_path} (Tamaño: {os.path.getsize(output_path)} bytes)")
+        
+        # Subir a S3
+        s3 = boto3.client("s3")
+        s3_key = f"er-diagrama-{user_id}.png"
+        s3.upload_file(output_path, bucket_name, s3_key)
+        image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
+        
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'imageUrl': image_url,
+                'message': 'Diagrama generado exitosamente'
+            }),
+            'headers': {'Content-Type': 'application/json'}
+        }
+        
     except Exception as e:
         print(f"Error completo: {str(e)}")
         return {
             'statusCode': 500,
             'body': json.dumps({
                 'error': f'Error al generar el diagrama: {str(e)}',
-                'suggestion': 'Verifique que el DSL tenga el formato correcto y que Graphviz esté instalado correctamente'
+                'suggestion': 'Verifique: 1) El formato del DSL 2) Que Graphviz esté instalado 3) Los permisos en /tmp'
             }),
             'headers': {'Content-Type': 'application/json'}
         }
     finally:
-        # Limpieza de archivos temporales
-        if 'tmp_path' in locals() and os.path.exists(tmp_path):
-            os.remove(tmp_path)
+        # Limpieza
+        if 'input_source' in locals() and os.path.exists(input_source) and input_source != dsl_content:
+            os.remove(input_source)
+        print(f"Contenido de /tmp al final: {os.listdir('/tmp')}")
