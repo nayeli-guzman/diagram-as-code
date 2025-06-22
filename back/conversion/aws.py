@@ -54,6 +54,8 @@ def lambda_handler(event, context):
     "from diagrams.onprem.client import Users\n\n" \
     "with Diagram(\"Clustered Web Services\", show=False):\n" \
     "    dns = Route53(\"dns\")\n" \
+    "print(\"Files in /tmp:\", os.listdir(\"/tmp\"))\n" \
+    "print(222)\n" \
     ""
     
     '''
@@ -97,7 +99,11 @@ def lambda_handler(event, context):
                         f"with Diagram(\"Event Processing\", show=False, outformat='png', filename='/tmp/diagrama.png'):\n")
 
         print(modified_code)
+        print("Files in /tmp:", os.listdir("/tmp"))
+
         exec(modified_code, {}, safe_locals)
+        print("Files in /tmp:", os.listdir("/tmp"))
+
 
         print(safe_locals)
 
@@ -111,6 +117,8 @@ def lambda_handler(event, context):
             print(f"File: {file}")
 
         print("SUCCESS")
+
+        print("Files in /tmp:", os.listdir("/tmp"))
 
         #with NamedTemporaryFile(delete=False, suffix=".png", dir='/tmp') as tmpfile:
         print("GG")
