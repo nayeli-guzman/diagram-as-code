@@ -3,7 +3,6 @@ service: diagrama-hack
 
 plugins:
   - serverless-python-requirements
-  - serverless-aws-documentation
 
 provider:
   name: aws
@@ -17,13 +16,7 @@ custom:
   pythonRequirements:
     dockerizePip: true
     layer: false
-  documentation:
-    api:
-      info:
-        version: '1.0.0'
-        title: diagrama-hack
-        description: API para registrar, validar y autenticar usuarios
-    models:
+
 
 functions:
   registrar:
@@ -47,13 +40,6 @@ functions:
   authorizer:
     handler: UserValidar.lambda_handler
 
-  swaggerui:
-    handler: swagger.lambda_handler
-    events:
-      - http:
-          path: /docs
-          method: get
-          cors: true
 
 resources:
   Resources:
