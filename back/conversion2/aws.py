@@ -2,13 +2,13 @@ import boto3, json, os
 from eralchemy import render_er
 import tempfile
 import re
+import shutil
 
 bucket_name = "e-rbucket"
 output_path = "/tmp/diagrama_er.png"
 user_validar = f"diagram-usuarios-dev-validar"
 
 def is_valid_sqlalchemy_url(dsl):
-    """Verifica si el DSL es una URL SQLAlchemy válida"""
     patterns = [
         r'^sqlite:///',
         r'^postgresql://',
@@ -19,97 +19,88 @@ def is_valid_sqlalchemy_url(dsl):
     return any(re.match(pattern, dsl.strip()) for pattern in patterns)
 
 def lambda_handler(event, context):
-    print(event)
-    
     try:
-        body = json.loads(event['body'])
-        token = event['headers']['Authorization']
-        tenant_id = body['tenant_id']
-        user_id = body['user_id']
+        # [Sección de validación del token - mantener igual]
         
-        # Validación del token (tu código existente)
-        lambda_client = boto3.client('lambda')
-        payload = {"token": token, "tenant_id": tenant_id}
-        invoke_response = lambda_client.invoke(
-            FunctionName=user_validar,
-            InvocationType='RequestResponse',
-            Payload=json.dumps(payload)
-        )
-        response = json.loads(invoke_response['Payload'].read())
-        
-        if response['statusCode'] == 403:
-            return {
-                'statusCode': 403,
-                'body': json.dumps({'status': 'Forbidden - Acceso No Autorizado'}),
-                'headers': {'Content-Type': 'application/json'}
-            }
-        
-        if not body.get("dsl") or not user_id:
-            return {
-                'statusCode': 400,
-                'body': json.dumps({'error': 'Falta dsl o user_id'}),
-                'headers': {'Content-Type': 'application/json'}
-            }
-
         # Preprocesar el DSL
         dsl_cleaned = body["dsl"].replace("\\n", "\n").replace("\\t", "\t").strip()
-        print(f"DSL limpio:\n{dsl_cleaned}")
+        print(f"DSL recibido:\n{dsl_cleaned}")
 
-        # Verificar si es una URL SQLAlchemy válida
-        is_sqlalchemy = is_valid_sqlalchemy_url(dsl_cleaned)
-        
-        # Si no es una URL SQLAlchemy, escribir a archivo temporal
-        if not is_sqlalchemy:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".er", mode='w') as dsl_file:
-                dsl_file.write(dsl_cleaned)
-                dsl_path = dsl_file.name
-                print(f"Archivo DSL creado en: {dsl_path}")
-            
-            # Verificar que el archivo tiene contenido válido
-            with open(dsl_path, 'r') as f:
-                content = f.read()
-                if not content.strip():
-                    raise ValueError("El archivo DSL está vacío")
-        else:
-            dsl_path = dsl_cleaned
+        # Asegurar que el directorio /tmp existe
+        os.makedirs("/tmp", exist_ok=True)
 
-        # Renderizar el diagrama
+        # Limpiar archivos previos
+        if os.path.exists(output_path):
+            os.remove(output_path)
+
+        # Crear archivo temporal con extensión .er (requerido por eralchemy)
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.er', delete=False, dir='/tmp') as tmp_file:
+            tmp_file.write(dsl_cleaned)
+            tmp_path = tmp_file.name
+            print(f"Archivo temporal creado en: {tmp_path}")
+
+        # Verificar contenido del archivo
+        with open(tmp_path, 'r') as f:
+            content = f.read()
+            if not content.strip():
+                raise ValueError("El archivo DSL está vacío")
+
+        # 1. Intento principal con render_er
         try:
-            render_er(dsl_path, output_path)
-            print(f"Diagrama generado en {output_path}")
+            print("Intentando renderizar con eralchemy...")
+            render_er(tmp_path, output_path)
             
-            # Verificar que la imagen se creó
-            if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-                raise ValueError("No se generó el archivo de imagen")
+            if not os.path.exists(output_path):
+                raise RuntimeError("Render_er no generó el archivo de salida")
                 
+            print(f"Diagrama generado correctamente en {output_path}")
+
         except Exception as e:
-            print(f"Error al renderizar: {str(e)}")
-            # Intento alternativo con formato diferente
+            print(f"Error con render_er: {str(e)}")
+            # 2. Intento alternativo con system_graphviz
             try:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".dot", mode='w') as dot_file:
-                    dot_file.write(dsl_cleaned)
-                    dot_path = dot_file.name
+                from eralchemy.cst import GRAPHVIZ_EXECUTABLE
+                from subprocess import run
                 
-                render_er(dot_path, output_path)
+                dot_path = tmp_path + '.dot'
+                cmd = [
+                    GRAPHVIZ_EXECUTABLE,
+                    '-Tpng',
+                    '-o', output_path,
+                    dot_path
+                ]
+                
+                # Generar archivo .dot primero
+                from eralchemy import render_er
+                render_er(tmp_path, dot_path)
+                
+                print(f"Ejecutando: {' '.join(cmd)}")
+                result = run(cmd, capture_output=True, text=True)
+                
+                if result.returncode != 0:
+                    raise RuntimeError(f"Graphviz falló: {result.stderr}")
+                    
             except Exception as fallback_e:
-                raise ValueError(f"Error principal y alternativo: {str(e)} | {str(fallback_e)}")
+                print(f"Error en método alternativo: {str(fallback_e)}")
+                raise RuntimeError(f"Todos los métodos fallaron: {str(e)} y {str(fallback_e)}")
 
-        # Subir a S3
-        s3 = boto3.client("s3")
-        s3_key = f"er-diagrama-{user_id}.png"
-        s3.upload_file(output_path, bucket_name, s3_key)
-        image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
-
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'imageUrl': image_url}),
-            'headers': {'Content-Type': 'application/json'}
-        }
+        # Verificar que la imagen se generó
+        if not os.path.exists(output_path):
+            raise RuntimeError("No se pudo generar el archivo de imagen después de todos los intentos")
+        
+        # [Resto del código para subir a S3 - mantener igual]
 
     except Exception as e:
         print(f"Error completo: {str(e)}")
         return {
             'statusCode': 500,
-            'body': json.dumps({'error': f'Error al procesar el DSL: {str(e)}'}),
+            'body': json.dumps({
+                'error': f'Error al generar el diagrama: {str(e)}',
+                'suggestion': 'Verifique que el DSL tenga el formato correcto y que Graphviz esté instalado correctamente'
+            }),
             'headers': {'Content-Type': 'application/json'}
         }
+    finally:
+        # Limpieza de archivos temporales
+        if 'tmp_path' in locals() and os.path.exists(tmp_path):
+            os.remove(tmp_path)
