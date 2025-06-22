@@ -72,7 +72,7 @@ resources:
         AttributeDefinitions:
           - AttributeName: tenant_id
             AttributeType: S
-          - AttributeName: token_id
+          - AttributeName: token
             AttributeType: S
         KeySchema:
           - AttributeName: tenant_id
