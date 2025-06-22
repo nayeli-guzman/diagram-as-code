@@ -77,21 +77,6 @@ def lambda_handler(event, context):
     '''
     print(code)
 
-    
-    print(os.environ["PATH"])
-    path_env = os.environ.get("PATH")
-    
-   
-    path_directories = path_env.split(':')
-    for directory in path_directories:
-        print(f"Contenido de {directory}:")
-        if os.path.exists(directory):
-            for file in os.listdir(directory):
-                print(f"  {file}")
-        else:
-            print("  Este directorio no existe.")
-    print("sssss")
-
     try:
         safe_locals = {
             'Diagram': Diagram,
@@ -116,20 +101,18 @@ def lambda_handler(event, context):
 
         print("SUCCESS")
 
-        with NamedTemporaryFile(delete=False, suffix=".png", dir='/tmp') as tmpfile:
-            print("GG")
-            tmpfile_path = tmpfile.name 
-            print(tmpfile)
-            print(tmpfile.name)
-            print(f"Saving diagram to {tmpfile_path}")
-            s3_client = boto3.client('s3')
-            s3_key = f'diagrama-{user_id}.png'
-            bucket_name = 'cad-diagrams'
-            s3_client.upload_file(tmpfile_path, bucket_name, s3_key)
-            print(s3_key)
-            
-            image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
-            print(f"Image URL: {image_url}")
+        #with NamedTemporaryFile(delete=False, suffix=".png", dir='/tmp') as tmpfile:
+        print("GG")
+        tmpfile_path = "/tmp/diagrama.png" #tmpfile.name 
+        print(f"Saving diagram to {tmpfile_path}")
+        s3_client = boto3.client('s3')
+        s3_key = f'diagrama-{user_id}.png'
+        bucket_name = 'cad-diagrams'
+        s3_client.upload_file(tmpfile_path, bucket_name, s3_key)
+        print(s3_key)
+        
+        image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
+        print(f"Image URL: {image_url}")
 
         return {
             'statusCode': 200,
