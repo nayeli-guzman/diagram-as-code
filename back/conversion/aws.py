@@ -61,14 +61,12 @@ def lambda_handler(event, context):
         exec(code, {}, safe_locals)
 
         with NamedTemporaryFile(delete=False, suffix=".png", dir='/tmp') as tmpfile:
-            tmpfile_path = tmpfile.name
-            shutil.move(tmpfile_path, f'/tmp/diagrama-{user_id}.png')
-
-        s3_client = boto3.client('s3')
-
-        s3_key = f'diagrama-{user_id}.png'
-        s3_client.upload_file('/tmp/diagrama-{user_id}.png', bucket_name, s3_key)
-
+            tmpfile_path = tmpfile.name 
+            s3_client = boto3.client('s3')
+            s3_key = f'diagrama-{user_id}.png'
+            bucket_name = 'cad-diagrams'
+            s3_client.upload_file(tmpfile_path, bucket_name, s3_key)
+        
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
 
         return {
