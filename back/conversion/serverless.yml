@@ -1,0 +1,38 @@
+org: adrianurbinamendoza
+service: conversion
+
+plugins:
+  - serverless-python-requirements
+
+provider:
+  name: aws
+  runtime: python3.12
+  timeout: 30
+  region: us-east-1
+  iam:
+    role: arn:aws:iam::254780740814:role/LabRole
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer: false
+  documentation:
+    api:
+      info:
+        version: '1.0.0'
+        title: conversion
+        description: API para registrar, validar y autenticar usuarios
+    models:
+
+functions:
+  conversion-aws:
+    handler: aws.lambda_handler
+    events:
+      - http:
+          path: /conversion/aws
+          method: post
+          cors: true
+          integration: lambda-proxy
+    layers:
+      - arn:aws:lambda:us-east-1:254780740814:layer:graphviz-layer:1
+
