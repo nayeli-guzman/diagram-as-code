@@ -93,7 +93,8 @@ def lambda_handler(event, context):
         print(safe_locals)
         modified_code = code.replace("with Diagram(", f"with Diagram(render=True, show=False, outformat='png', filename='/tmp/diagrama-{user_id}.png')")
 
-        exec(code, {}, safe_locals)
+        print(modified_code)
+        exec(modified_code, {}, safe_locals)
 
         print("SUCCESS")
 
