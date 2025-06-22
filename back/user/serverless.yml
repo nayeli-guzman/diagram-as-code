@@ -11,12 +11,15 @@ provider:
   region: us-east-1
   iam:
     role: arn:aws:iam::254780740814:role/LabRole
-
-custom:
-  pythonRequirements:
-    dockerizePip: true
-    layer: false
-
+  environment:
+    DIAGRAM_BUCKET: cad-diagrama
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+      Resource:
+        - arn:aws:s3:::cad-diagrama/*
 
 functions:
   registrar:
@@ -40,6 +43,22 @@ functions:
   authorizer:
     handler: UserValidar.lambda_handler
 
+  generarDiagrama:
+    handler: DiagramGen.lambda_handler
+    # layers:
+    #   - { Ref: GraphvizPythonLambdaLayer }
+    events:
+      - http:
+          path: /diagramas
+          method: post
+          cors: true
+          integration: lambda-proxy
+          authorizer:
+            type: request
+            authorizerId:
+              Fn::GetAtt:
+                - AuthorizerLambdaFunction
+                - Arn
 
 resources:
   Resources:
@@ -77,3 +96,13 @@ resources:
         TimeToLiveSpecification:
           AttributeName: expires_ts
           Enabled: true
+
+    DiagramasBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: cad-diagrama
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins: ["*"]
+              AllowedMethods: ["GET","PUT","POST"]
+              AllowedHeaders: ["*"]
