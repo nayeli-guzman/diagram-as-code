@@ -99,20 +99,32 @@ def lambda_handler(event, context):
         # Renderizar como imagen PNG
         print(f"Generando diagrama ER en {output_path}")
         
-        # Verificar si el DSL parece una URL de SQLAlchemy (mysql, postgresql, etc.)
-        try:
-            if body["dsl"].strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://")):
-                print("Detectado SQLAlchemy URL, pasando directamente a renderización.")
-                render_er(body["dsl"], output_path)  # Si es una URL SQLAlchemy
-            else:
-                render_er(dsl_path, output_path)  # Si es un archivo .dsl
-        except Exception as e:
-            print(f"Error durante el renderizado: {str(e)}")
-            return {
-                'statusCode': 500,
-                'body': json.dumps({'error': f"Error durante el renderizado: {str(e)}"}),
-                'headers': {'Content-Type': 'application/json'}
-            }
+        # Revisar si el DSL parece una URL SQLAlchemy (mysql://, sqlite://, etc.)
+        is_sqlalchemy_url = body["dsl"].strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://"))
+        
+        # Si parece una URL de SQLAlchemy, procesarla directamente
+        if is_sqlalchemy_url:
+            print("Detectado SQLAlchemy URL, pasando directamente a renderización.")
+            try:
+                render_er(body["dsl"], output_path)  # Pasar URL directamente
+            except Exception as e:
+                print(f"Error durante el renderizado: {str(e)}")
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'error': f"Error durante el renderizado: {str(e)}"}),
+                    'headers': {'Content-Type': 'application/json'}
+                }
+        else:
+            # Si no es una URL SQLAlchemy, usar el archivo .dsl
+            try:
+                render_er(dsl_path, output_path)
+            except Exception as e:
+                print(f"Error durante el renderizado: {str(e)}")
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'error': f"Error durante el renderizado: {str(e)}"}),
+                    'headers': {'Content-Type': 'application/json'}
+                }
 
         # Verificar si la imagen se generó correctamente
         if not os.path.exists(output_path):
