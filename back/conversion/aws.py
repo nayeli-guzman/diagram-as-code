@@ -43,7 +43,16 @@ def lambda_handler(event, context):
         }
 
     code = body["code"]
-    code = "import graphviz\n\n# Prueba si Graphviz se puede ejecutar\ntry:\n    print(\"Probando Graphviz\")\n    dot = graphviz.Digraph(comment='Test')\n    dot.node('A', 'Inicio')\n    dot.node('B', 'Fin')\n    dot.edge('A', 'B', 'A -> B')\n    print(\"Diagrama generado correctamente con Graphviz\")\n    dot.render('/tmp/test_diagram', format='png')  # Intenta renderizar el diagrama\nexcept Exception as e:\n    print(f\"Error al usar Graphviz: {str(e)}\")"
+    code = "" \
+    "from diagrams import Cluster, Diagram\n" \
+    "from diagrams.aws.compute import ECS, EKS, Lambda\n" \
+    "from diagrams.aws.database import Redshift\n" \
+    "from diagrams.aws.storage import S3\n" \
+    "from diagrams.onprem.vcs import Github\n" \
+    "from diagrams.onprem.client import Users\n\n" \
+    "with Diagram(\"Clustered Web Services\", show=False):\n" \
+    "    dns = Route53(\"dns\")\n" \
+    ""
     
     '''
     with Diagram("Event Processing", show=False):
@@ -82,7 +91,8 @@ def lambda_handler(event, context):
         }
 
         print(safe_locals)
-        
+        modified_code = code.replace("with Diagram(", f"with Diagram(render=True, show=False, outformat='png', filename='/tmp/diagrama-{user_id}.png')")
+
         exec(code, {}, safe_locals)
 
         print("SUCCESS")
