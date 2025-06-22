@@ -65,9 +65,13 @@ def lambda_handler(event, context):
                 'headers': {'Content-Type': 'application/json'}
             }
 
-        # Escribir DSL a archivo temporal
+        # Preprocesar el DSL: Limpiar caracteres de escape y saltos de línea
+        dsl_cleaned = body["dsl"].replace("\\n", "\n").replace("\\t", "\t").strip()
+        print(f"DSL limpio:\n{dsl_cleaned}")  # Imprimir el contenido limpio del DSL
+
+        # Escribir DSL limpio a archivo temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix=".dsl", mode='w') as dsl_file:
-            dsl_file.write(body["dsl"])
+            dsl_file.write(dsl_cleaned)
             dsl_path = dsl_file.name
             print(f"DSL Path creado: {dsl_path}")  # Verifica la ruta del archivo temporal
 
