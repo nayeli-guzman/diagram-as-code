@@ -1,7 +1,7 @@
 from diagrams import Cluster, Diagram 
 from diagrams.aws.compute import ECS, EKS, Lambda
 from diagrams.aws.database import Redshift
-#from diagrams.aws.messaging import SQS
+from diagrams.aws. integration import SQS
 from diagrams.aws.storage import S3
 from diagrams.onprem.vcs import Github
 from diagrams.onprem.client import Users
@@ -50,7 +50,7 @@ def lambda_handler(event, context):
             'ECS': ECS,
             'EKS': EKS,
             'Lambda': Lambda,
-            #'SQS': SQS,
+            'SQS': SQS,
             'S3': S3,
             'Redshift': Redshift,
             'Github': Github,
@@ -64,7 +64,7 @@ def lambda_handler(event, context):
 
         with NamedTemporaryFile(delete=False, suffix=".png", dir='/tmp') as tmpfile:
             tmpfile_path = tmpfile.name 
-            
+
         print(tmpfile)
         print(tmpfile.name)
         print(f"Saving diagram to {tmpfile_path}")
