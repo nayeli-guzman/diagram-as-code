@@ -69,7 +69,7 @@ def lambda_handler(event, context):
 
         print(safe_locals)
         modified_code = re.sub(r"^with Diagram\([^\)]*\):\n", 
-                      r"with Diagram(\"gen\", show=False, outformat='png', filename='/tmp/diagrama'):\n", 
+                      r"with Diagram('gen', show=False, outformat='png', filename='/tmp/diagrama'):\n", 
                       code, flags=re.MULTILINE)
         
         print(modified_code)
