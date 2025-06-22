@@ -94,23 +94,35 @@ def lambda_handler(event, context):
 
         print(safe_locals)
         modified_code = code.replace("with Diagram(\"Clustered Web Services\", show=False):\n",
-                        f"with Diagram(\"Event Processing\", show=False, outformat='png', filename='/tmp/diagrama.png'):\n")
+                        f"with Diagram(\"Event Processing\", show=False, outformat='png', filename='./tmp/diagrama.png'):\n")
 
         print(modified_code)
         exec(modified_code, {}, safe_locals)
+
+        print(safe_locals)
 
         print("SUCCESS")
 
         #with NamedTemporaryFile(delete=False, suffix=".png", dir='/tmp') as tmpfile:
         print("GG")
-        tmpfile_path = "/tmp/diagrama.png" #tmpfile.name 
+        tmpfile_path = "./tmp/diagrama.png" #tmpfile.name 
         print(f"Saving diagram to {tmpfile_path}")
         s3_client = boto3.client('s3')
         s3_key = f'diagrama-{user_id}.png'
         bucket_name = 'cad-diagrams'
         s3_client.upload_file(tmpfile_path, bucket_name, s3_key)
         print(s3_key)
+
+        directory = '.'  # "." se refiere al directorio actual
+
+        # Lista los archivos en el directorio actual
+        files = os.listdir(directory)
+
+        # Imprime los nombres de los archivos
+        for file in files:
+            print(f"File: {file}")
         
+            
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
         print(f"Image URL: {image_url}")
 
