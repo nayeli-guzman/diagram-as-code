@@ -81,11 +81,32 @@ def lambda_handler(event, context):
 
         # Verificar contenido del archivo .dsl
         with open(dsl_path, 'r') as file:
-            print(f"Contenido del archivo .dsl: {file.read()}")
+            dsl_content = file.read()
+            print(f"Contenido del archivo .dsl:\n{dsl_content}")
+
+        # Intentar importar graphviz para verificar que está disponible
+        try:
+            import graphviz
+            print("Graphviz importado correctamente")
+        except Exception as e:
+            print(f"Error al importar Graphviz: {str(e)}")
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': f"Error al importar Graphviz: {str(e)}"}),
+                'headers': {'Content-Type': 'application/json'}
+            }
 
         # Renderizar como imagen PNG
         print(f"Generando diagrama ER en {output_path}")
-        render_er(dsl_path, output_path)
+        try:
+            render_er(dsl_path, output_path)
+        except Exception as e:
+            print(f"Error durante el renderizado: {str(e)}")
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': f"Error durante el renderizado: {str(e)}"}),
+                'headers': {'Content-Type': 'application/json'}
+            }
 
         # Verificar si la imagen se generó correctamente
         if not os.path.exists(output_path):
