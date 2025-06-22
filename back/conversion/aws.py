@@ -10,7 +10,7 @@ import shutil
 import json
 import boto3
 
-user_validar = f"diagrama-hack-dev-authorizer"
+user_validar = f"76e336cf-be05-42ee-ba11-4bab024a917a"
 bucket_name = "cad-diagrams"
 
 def lambda_handler(event, context):
