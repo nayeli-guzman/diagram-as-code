@@ -14,12 +14,13 @@ provider:
 
 custom:
   pythonRequirements:
-    dockerizePip: true
+    dockerizePip: false  # Desactivar Docker para evitar problemas
     layer: false
-    useStaticCache: false
     slim: true
-    dockerExtraFiles:
-      - ./Dockerfile  
+    noDeploy:
+      - boto3
+      - botocore
+      - s3transfer
 
 functions:
   generate-erd:
@@ -30,5 +31,4 @@ functions:
           method: post
           cors: true
     layers:
-      - arn:aws:lambda:us-east-1:254780740814:layer:graphviz-layer:3
-      - { Ref: PythonRequirementsLambdaLayer }  # Capa auto-generada
+      - arn:aws:lambda:us-east-1:254780740814:layer:graphviz-layer:3  # Capa con Graphviz
