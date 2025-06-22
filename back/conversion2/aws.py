@@ -1,12 +1,14 @@
 import os
 import json
 import tempfile
-import subprocess
-
+import boto3
+import base64
 from eralchemy import render_er
 
 def lambda_handler(event, context):
-    os.environ["PATH"] += ":/opt/bin"  # Para asegurar acceso a dot
+    os.environ["PATH"] += ":/opt/bin"
+    s3 = boto3.client("s3")
+    bucket_name = "e-rbucket"
 
     try:
         body = json.loads(event["body"])
@@ -19,28 +21,29 @@ def lambda_handler(event, context):
                 "headers": {"Content-Type": "application/json"}
             }
 
-        # Crear archivo temporal con DSL
+        # Crear archivo temporal DSL
         with tempfile.NamedTemporaryFile(mode='w+', suffix='.er', delete=False) as dsl_file:
             dsl_file.write(dsl_text)
             dsl_path = dsl_file.name
 
-        # Crear archivo de salida
+        # Generar imagen
         out_path = dsl_path.replace('.er', '.png')
-
-        # Generar imagen con ERAlchemy
         render_er(dsl_path, out_path)
 
-        # Leer la imagen generada y devolver en base64
-        with open(out_path, "rb") as img_file:
-            img_base64 = img_file.read()
+        # Nombre único en S3
+        filename = f"erd_{context.aws_request_id}.png"
+
+        # Subir imagen a S3
+        with open(out_path, "rb") as f:
+            s3.upload_fileobj(f, bucket_name, filename, ExtraArgs={"ACL": "public-read", "ContentType": "image/png"})
+
+        # Construir URL pública
+        file_url = f"https://{bucket_name}.s3.amazonaws.com/{filename}"
 
         return {
             "statusCode": 200,
-            "body": img_base64.decode("latin1"),  # se recomienda usar base64 si es binario
-            "isBase64Encoded": True,
-            "headers": {
-                "Content-Type": "image/png"
-            }
+            "body": json.dumps({"url": file_url}),
+            "headers": {"Content-Type": "application/json"}
         }
 
     except Exception as e:
