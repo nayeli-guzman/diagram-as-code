@@ -62,12 +62,19 @@ def lambda_handler(event, context):
 
         with NamedTemporaryFile(delete=False, suffix=".png", dir='/tmp') as tmpfile:
             tmpfile_path = tmpfile.name 
+            print(tmpfile)
+            print(tmpfile.name)
+            print(f"Saving diagram to {tmpfile_path}")
+
             s3_client = boto3.client('s3')
             s3_key = f'diagrama-{user_id}.png'
             bucket_name = 'cad-diagrams'
             s3_client.upload_file(tmpfile_path, bucket_name, s3_key)
+
+            print(s3_key)
         
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
+        print(f"Image URL: {image_url}")
 
         return {
             'statusCode': 200,
