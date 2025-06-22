@@ -3,58 +3,43 @@ import json
 import time
 
 def lambda_handler(event, context):
-    headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json"
+    # Leer tenant_id y token desde el body
+    body = json.loads(event.get('body') or '{}')
+    token = body.get('token')
+    tenant_id = body.get('tenant_id')
+
+    if not token or not tenant_id:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': 'token and tenant_id are required'})
+        }
+
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('ab_tokens_acceso')
+    resp = table.get_item(Key={'token': token, 'tenant_id': tenant_id})
+    if 'Item' not in resp:
+        return {
+            'statusCode': 403,
+            'body': json.dumps({'error': 'Token no existe'})
+        }
+
+    item = resp['Item']
+    if item.get('tenant_id') != tenant_id:
+        return {
+            'statusCode': 403,
+            'body': json.dumps({'error': 'Tenant inválido'})
+        }
+
+    expires_ts = item['expires_ts']
+    now_ts = int(time.time())
+    if now_ts > expires_ts:
+        return {
+            'statusCode': 403,
+            'body': json.dumps({'error': 'Token expirado'})
+        }
+
+    # Si es válido, retornamos HTTP 200
+    return {
+        'statusCode': 200,
+        'body': json.dumps({'message': 'Token válido'})
     }
-
-    try:
-        # Extraer token del header Authorization
-        auth = event.get('headers', {}).get('Authorization', '')
-        if not auth.startswith('Bearer '):
-            raise Exception('Missing or invalid Authorization header')
-        token = auth.split()[1]
-
-        # También puedes extraer tenant_id de otro header o de context
-        tenant_id = event.get('headers', {}).get('x-tenant-id')
-        if not tenant_id:
-            raise Exception('Missing tenant header')
-
-        dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table('ab_tokens_acceso')
-        resp = table.get_item(Key={'token': token, 'tenant_id': tenant_id})
-        if 'Item' not in resp:
-            return {
-                'statusCode': 403,
-                'headers': headers,
-                'body': json.dumps({'error': 'Unauthorized'})
-            }
-
-        if resp['Item']['expires_ts'] < int(time.time()):
-            return {
-                'statusCode': 403,
-                'headers': headers,
-                'body': json.dumps({'error': 'Token expired'})
-            }
-
-        # Si es válido, devolvemos la política IAM para permitir la ejecución
-        return {
-            'principalId': resp['Item']['user_id'],
-            'policyDocument': {
-                'Version': '2012-10-17',
-                'Statement': [
-                    {
-                        'Action': 'execute-api:Invoke',
-                        'Effect': 'Allow',
-                        'Resource': event['methodArn']
-                    }
-                ]
-            }
-        }
-
-    except Exception as e:
-        return {
-            'statusCode': 401,
-            'headers': headers,
-            'body': json.dumps({'error': str(e)})
-        }
