@@ -12,7 +12,7 @@ provider:
   iam:
     role: arn:aws:iam::254780740814:role/LabRole
   environment:
-  TABLE_NAME: usuarios
+    TABLE_NAME: usuarios
 
 custom:
   pythonRequirements:
