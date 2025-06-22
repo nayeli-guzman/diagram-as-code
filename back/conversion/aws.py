@@ -77,8 +77,7 @@ def lambda_handler(event, context):
     '''
     print(code)
 
-    print(os.environ["PATH"])
-    os.environ["PATH"] += ":/bin"
+    
     print(os.environ["PATH"])
     path_env = os.environ.get("PATH")
     
