@@ -14,6 +14,7 @@ def test_local():
     event = {
         'body': json.dumps({
             'title': 'Mi Tienda Online',
+            'bucket': 'mi-bucket-diagramas',  # Nuevo: especificar bucket S3
             'data': {
                 "Mi_Empresa": {
                     "Ventas": {
@@ -45,6 +46,16 @@ def test_local():
         with open('test_diagram.png', 'wb') as f:
             f.write(image_data)
         print("📊 Imagen guardada como: test_diagram.png")
+        
+        # Mostrar información de S3 si está disponible
+        if 's3' in body and body['s3']:
+            s3_info = body['s3']
+            if s3_info.get('success'):
+                print(f"☁️ Imagen subida a S3: {s3_info.get('url')}")
+                print(f"📁 Bucket: {s3_info.get('bucket')}")
+                print(f"🔑 Key: {s3_info.get('key')}")
+            else:
+                print(f"❌ Error en S3: {s3_info.get('error')}")
     else:
         print(f"❌ Error: {response['body']}")
 

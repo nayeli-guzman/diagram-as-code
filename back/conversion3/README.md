@@ -107,9 +107,45 @@ curl -X POST https://tu-api-url/generate-diagram \
   }'
 ```
 
-## Notas
+## 🆕 Nueva Funcionalidad: Guardar en S3
 
-- El servicio usa un layer de Graphviz preconfigurado en AWS
-- El timeout está configurado a 60 segundos
-- Las imágenes se devuelven en formato base64
-- CORS está habilitado para requests desde el browser
+Ahora puedes guardar automáticamente los diagramas en un bucket S3:
+
+### Ejemplo con S3
+
+```bash
+curl -X POST https://eaeu5ax03c.execute-api.us-east-1.amazonaws.com/dev/generate-diagram \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Mi Arquitectura",
+    "bucket": "mi-bucket-diagramas",
+    "data": {
+      "Sistema": {
+        "Frontend": {"web": {}, "mobile": {}},
+        "Backend": {"api": {}, "database": {}}
+      }
+    }
+  }'
+```
+
+### Respuesta con S3
+
+```json
+{
+  "success": true,
+  "message": "Diagrama generado exitosamente",
+  "image": "base64-encoded-image",
+  "contentType": "image/png",
+  "s3": {
+    "success": true,
+    "url": "https://mi-bucket-diagramas.s3.amazonaws.com/diagrams/Mi_Arquitectura_20250622_143052_a1b2c3d4.png",
+    "key": "diagrams/Mi_Arquitectura_20250622_143052_a1b2c3d4.png",
+    "bucket": "mi-bucket-diagramas"
+  }
+}
+```
+
+### Parámetros para S3
+
+- `bucket` (opcional): Nombre del bucket S3 donde guardar la imagen
+- Si no se especifica `bucket`, solo se devuelve el base64 sin guardar en S3

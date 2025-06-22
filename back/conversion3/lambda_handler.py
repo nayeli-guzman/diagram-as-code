@@ -3,6 +3,9 @@ import base64
 import io
 import tempfile
 import os
+import boto3
+from datetime import datetime
+import uuid
 from graphviz import Digraph
 
 def json_to_graph(data, graph=None, parent=None, level=0):
@@ -94,6 +97,43 @@ def generar_estructura_ecommerce():
         }
     }
 
+def upload_to_s3(image_bytes, bucket_name, title="diagram"):
+    """Sube la imagen a S3 y retorna la URL y key"""
+    
+    try:
+        # Crear cliente S3
+        s3_client = boto3.client('s3')
+        
+        # Generar nombre único para el archivo
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid.uuid4())[:8]
+        filename = f"diagrams/{title.replace(' ', '_')}_{timestamp}_{unique_id}.png"
+        
+        # Subir archivo a S3
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=filename,
+            Body=image_bytes,
+            ContentType='image/png',
+            ACL='public-read'  # Hace el archivo público
+        )
+        
+        # Generar URL pública
+        s3_url = f"https://{bucket_name}.s3.amazonaws.com/{filename}"
+        
+        return {
+            'success': True,
+            'url': s3_url,
+            'key': filename,
+            'bucket': bucket_name
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f"Error subiendo a S3: {str(e)}"
+        }
+
 def lambda_handler(event, context):
     """Handler principal de AWS Lambda"""
     
@@ -123,6 +163,12 @@ def lambda_handler(event, context):
         # Convertir a base64 para devolverlo en la respuesta HTTP
         image_base64 = base64.b64encode(image_bytes).decode('utf-8')
         
+        # Subir a S3 si se proporciona el nombre del bucket
+        s3_response = {}
+        if 'bucket' in body:
+            bucket_name = body['bucket']
+            s3_response = upload_to_s3(image_bytes, bucket_name, title)
+        
         # Respuesta exitosa
         return {
             'statusCode': 200,
@@ -136,7 +182,8 @@ def lambda_handler(event, context):
                 'success': True,
                 'message': 'Diagrama generado exitosamente',
                 'image': image_base64,
-                'contentType': 'image/png'
+                'contentType': 'image/png',
+                's3': s3_response
             })
         }
     
