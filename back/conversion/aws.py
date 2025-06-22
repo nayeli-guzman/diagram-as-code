@@ -46,13 +46,6 @@ def lambda_handler(event, context):
 
     code = body["code"]
     code = "" \
-    "from diagrams import Cluster, Diagram\n" \
-    "from diagrams.aws.compute import ECS, EKS, Lambda\n" \
-    "from diagrams.aws.database import Redshift\n" \
-    "from diagrams.aws.storage import S3\n" \
-    "from diagrams.onprem.vcs import Github\n" \
-    "from diagrams.onprem.client import Users\n\n" \
-    "import os\n" \
     "with Diagram(\"Clustered Web Services\", show=False):\n" \
     "    dns = Route53(\"dns\")\n" \
     "print(\"Files in /tmp:\", os.listdir(\"/tmp\"))\n" \
