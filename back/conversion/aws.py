@@ -92,7 +92,7 @@ def lambda_handler(event, context):
 
         print(safe_locals)
         modified_code = code.replace("with Diagram(\"Clustered Web Services\", show=False):\n",
-                        f"with Diagram(\"Event Processing\", show=False, outformat='png', filename='./tmp/diagrama.png'):")
+                        f"with Diagram(\"Event Processing\", show=False, outformat='png', filename='./tmp/diagrama.png'):\n")
 
         print(modified_code)
         exec(modified_code, {}, safe_locals)
