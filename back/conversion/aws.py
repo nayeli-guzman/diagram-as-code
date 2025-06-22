@@ -4,8 +4,6 @@ import json
 def lambda_handler(event, context):
     # Verificar si 'dot' está en /opt/bin
     os.environ["PATH"] += ":/opt/bin"
-
-    print("PATH:", os.environ["PATH"])
     
     # Ejecutar el comando dot para verificar su versión
     result = os.system("dot -V")
