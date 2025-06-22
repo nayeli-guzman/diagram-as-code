@@ -43,34 +43,11 @@ def lambda_handler(event, context):
             'statusCode' : 403,
             'status' : 'Forbidden - Acceso No Autorizado'
         }
+    
+    # se compilará el codigo mandado desde el front
 
     code = body["code"]
-    code = "" \
-    "with Diagram(\"Clustered Web Services\", show=False):\n" \
-    "    dns = Route53(\"dns\")\n" \
-    "print(\"Files in /tmp:\", os.listdir(\"/tmp\"))\n" \
-    "print(222)\n" \
-    ""
     
-    '''
-    with Diagram("Event Processing", show=False):
-        source = EKS("k8s source")
-        with Cluster ("Event Flows"):
-            with Cluster ("Event Workers"):
-                workers = [ECS("worker1"),
-                            ECS ("worker2"),
-                            ECS ("worker3") ]
-                queue = SQS("event queue")
-                with Cluster ("Processing"):
-                    handlers = [Lambda("proc1"),
-                                Lambda ("proc2"),
-                                Lambda ("proc3" )]
-        store = S3("events store")
-        dw = Redshift ("analytics")
-        source >> workers >> queue >> handlers
-        handlers >> store
-        handlers >> dw
-    '''
     print(code)
 
     try:
@@ -90,7 +67,7 @@ def lambda_handler(event, context):
         }
 
         print(safe_locals)
-        modified_code = code.replace("with Diagram(\"Clustered Web Services\", show=False):\n",
+        modified_code = code.replace(r"^with Diagram\([^\)]*\):\n",
                         f"with Diagram(\"Event Processing\", show=False, outformat='png', filename='/tmp/diagrama'):\n")
 
         print(modified_code)
