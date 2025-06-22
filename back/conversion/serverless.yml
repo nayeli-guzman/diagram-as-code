@@ -26,4 +26,4 @@ functions:
           cors: true
           integration: lambda-proxy
     layers:
-      - arn:aws:lambda:us-east-1:254780740814:layer:graphvizlayer:6
+      - arn:aws:lambda:us-east-1:254780740814:layer:graphvizlayer:7
