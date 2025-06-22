@@ -17,17 +17,12 @@ provider:
 custom:
   pythonRequirements:
     dockerizePip: true
-    layer: false
     useDownloadCache: false
     useStaticCache: false
 
 functions:
   registrar:
     handler: UserCreate.lambda_handler
-    documentation:
-      summary: Registrar usuario
-      requestModels:
-        'application/json': UserRequest
     events:
       - http:
           path: /usuarios/registrar
@@ -37,10 +32,6 @@ functions:
 
   validar:
     handler: UserValidar.lambda_handler
-    documentation:
-      summary: Validar usuario
-      requestModels:
-        'application/json': UserRequest
     events:
       - http:
           path: /usuarios/validar
@@ -50,10 +41,6 @@ functions:
 
   login:
     handler: UserLogin.lambda_handler
-    documentation:
-      summary: Login usuario
-      requestModels:
-        'application/json': UserRequest
     events:
       - http:
           path: /usuarios/login
