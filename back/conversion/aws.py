@@ -12,9 +12,13 @@ def lambda_handler(event, context):
     try:
         path_directories = path_env.split(':')
 
-        # Imprimir cada directorio
         for directory in path_directories:
-            print(f"Directorio: {directory}")
+            print(f"Contenido de {directory}:")
+            if os.path.exists(directory):
+                for file in os.listdir(directory):
+                    print(f"  {file}")
+            else:
+                print("  Este directorio no existe.")
         print("sssss")
         
         
