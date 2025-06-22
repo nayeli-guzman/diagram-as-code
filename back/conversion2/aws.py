@@ -1,144 +1,166 @@
-import boto3
-import json
-import os
-import re
-import tempfile
-import shutil
+import boto3, json, os
 from eralchemy import render_er
-from eralchemy.cst import GRAPHVIZ_EXECUTABLE
-from subprocess import run
+import tempfile
 
-# Configuración
 bucket_name = "e-rbucket"
 output_path = "/tmp/diagrama_er.png"
-user_validar = "diagram-usuarios-dev-validar"
 
-def is_valid_sqlalchemy_url(dsl):
-    """Verifica si el DSL es una URL SQLAlchemy válida"""
-    patterns = [
-        r'^sqlite:///',
-        r'^postgresql://',
-        r'^mysql://',
-        r'^oracle://',
-        r'^mssql://'
-    ]
-    return any(re.match(pattern, dsl.strip()) for pattern in patterns)
-
-def generate_diagram(dsl_content, output_path):
-    """Genera el diagrama ER usando diferentes métodos con fallback"""
-    methods = [
-        lambda: render_er(dsl_content, output_path),
-        lambda: generate_with_graphviz(dsl_content, output_path)
-    ]
-    
-    for method in methods:
-        try:
-            method()
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                return True
-        except Exception as e:
-            print(f"Método falló: {str(e)}")
-            continue
-    
-    return False
-
-def generate_with_graphviz(dsl_content, output_path):
-    """Genera el diagrama usando Graphviz directamente"""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.dot', delete=False, dir='/tmp') as dot_file:
-        dot_path = dot_file.name
-        render_er(dsl_content, dot_path)
-    
-    cmd = [
-        GRAPHVIZ_EXECUTABLE,
-        '-Tpng',
-        '-o', output_path,
-        dot_path
-    ]
-    
-    result = run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(f"Graphviz falló: {result.stderr}")
+# Nombre de la función Lambda de validación
+user_validar = f"diagram-usuarios-dev-validar"
 
 def lambda_handler(event, context):
+    print(event)
+    
+    # Entrada (json)
+    body = json.loads(event['body'])
+    
+    # Extraer token desde el header de autorización
+    token = event['headers']['Authorization']
+    tenant_id = body['tenant_id']
+    user_id = body['user_id']
+
+    # Proteger el Lambda: llamar a la función de validación del token
+    lambda_client = boto3.client('lambda')
+    payload = {
+        "token": token,
+        "tenant_id": tenant_id
+    }
+    
+    # Invocar la función de validación del token
+    invoke_response = lambda_client.invoke(
+        FunctionName=user_validar,
+        InvocationType='RequestResponse',
+        Payload=json.dumps(payload)
+    )
+    
+    # Leer la respuesta de la función de validación
+    response = json.loads(invoke_response['Payload'].read())
+    print(response)
+    
+    # Si la respuesta es 403, significa que el acceso no está autorizado
+    if response['statusCode'] == 403:
+        return {
+            'statusCode': 403,
+            'body': json.dumps({'status': 'Forbidden - Acceso No Autorizado'}),
+            'headers': {'Content-Type': 'application/json'}
+        }
+    
+    # Si el token es válido, continuar con la creación del diagrama
+    if not body.get("dsl") or not user_id:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': 'Falta dsl o user_id'}),
+            'headers': {'Content-Type': 'application/json'}
+        }
+
     try:
-        print("Inicio de la función Lambda")
-        print(f"Contenido de /tmp al inicio: {os.listdir('/tmp')}")
-        
-        # Parsear entrada
-        body = json.loads(event['body'])
-        token = event['headers']['Authorization']
-        tenant_id = body['tenant_id']
-        user_id = body['user_id']
-        dsl_content = body["dsl"].replace("\\n", "\n").replace("\\t", "\t").strip()
-        
-        print(f"DSL recibido:\n{dsl_content}")
-        
-        # Validar token (mantener tu lógica existente)
-        lambda_client = boto3.client('lambda')
-        payload = {"token": token, "tenant_id": tenant_id}
-        invoke_response = lambda_client.invoke(
-            FunctionName=user_validar,
-            InvocationType='RequestResponse',
-            Payload=json.dumps(payload)
-        )
-        response = json.loads(invoke_response['Payload'].read())
-        
-        if response['statusCode'] == 403:
+        # Verificar si /tmp existe y es escribible
+        if not os.path.exists('/tmp'):
+            os.makedirs('/tmp')  # Crear directorio si no existe
+
+        if not os.access('/tmp', os.W_OK):
             return {
-                'statusCode': 403,
-                'body': json.dumps({'status': 'Forbidden - Acceso No Autorizado'}),
+                'statusCode': 500,
+                'body': json.dumps({'error': 'El directorio /tmp no es escribible'}),
                 'headers': {'Content-Type': 'application/json'}
             }
+
+        # Preprocesar el DSL: Limpiar caracteres de escape y saltos de línea
+        dsl_cleaned = body["dsl"].replace("\\n", "\n").replace("\\t", "\t").strip()
         
-        # Preparar entorno
-        os.makedirs("/tmp", exist_ok=True)
-        if os.path.exists(output_path):
-            os.remove(output_path)
+        # Agregar depuración para ver el DSL limpio
+        print(f"DSL limpio:\n{dsl_cleaned}")  # Verifica si el DSL se limpió correctamente
+
+        # Escribir DSL limpio a archivo temporal
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".dsl", mode='w') as dsl_file:
+            dsl_file.write(dsl_cleaned)
+            dsl_path = dsl_file.name
+            print(f"DSL Path creado: {dsl_path}")  # Verifica la ruta del archivo temporal
+
+        # Verificar si el archivo temporal se ha creado correctamente
+        if not os.path.exists(dsl_path):
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': f"El archivo DSL no se creó correctamente: {dsl_path}"}),
+                'headers': {'Content-Type': 'application/json'}
+            }
+
+        # Verificar contenido del archivo .dsl
+        with open(dsl_path, 'r') as file:
+            dsl_content = file.read()
+            print(f"Contenido del archivo .dsl:\n{dsl_content}")
+
+        # Intentar importar graphviz para verificar que está disponible
+        try:
+            import graphviz
+            print("Graphviz importado correctamente")
+        except Exception as e:
+            print(f"Error al importar Graphviz: {str(e)}")
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': f"Error al importar Graphviz: {str(e)}"}),
+                'headers': {'Content-Type': 'application/json'}
+            }
+
+        # Renderizar como imagen PNG
+        print(f"Generando diagrama ER en {output_path}")
         
-        # Procesar DSL
-        if is_valid_sqlalchemy_url(dsl_content):
-            print("Procesando como URL SQLAlchemy")
-            input_source = dsl_content
+        # Comprobar si el DSL parece ser una URL SQLAlchemy (mysql://, sqlite://, etc.)
+        is_sqlalchemy_url = False
+        # Revisamos si el DSL tiene el formato de una URL SQLAlchemy
+        if body["dsl"].strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://")):
+            is_sqlalchemy_url = True
+        
+        if is_sqlalchemy_url:
+            print("Detectado SQLAlchemy URL, pasando directamente a renderización.")
+            try:
+                render_er(body["dsl"], output_path)  # Pasar URL directamente
+            except Exception as e:
+                print(f"Error durante el renderizado: {str(e)}")
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'error': f"Error durante el renderizado: {str(e)}"}),
+                    'headers': {'Content-Type': 'application/json'}
+                }
         else:
-            print("Procesando como DSL estándar")
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.er', delete=False, dir='/tmp') as tmp_file:
-                tmp_file.write(dsl_content)
-                input_source = tmp_file.name
-            print(f"Archivo temporal creado en: {input_source}")
-        
-        # Generar diagrama
-        if not generate_diagram(input_source, output_path):
-            raise RuntimeError("Todos los métodos para generar el diagrama fallaron")
-        
-        print(f"Diagrama generado en {output_path} (Tamaño: {os.path.getsize(output_path)} bytes)")
-        
+            # Si no es una URL SQLAlchemy, usar el archivo .dsl
+            try:
+                render_er(dsl_path, output_path)
+            except Exception as e:
+                print(f"Error durante el renderizado: {str(e)}")
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'error': f"Error durante el renderizado: {str(e)}"}),
+                    'headers': {'Content-Type': 'application/json'}
+                }
+
+        # Verificar si la imagen se generó correctamente
+        if not os.path.exists(output_path):
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': f"El archivo de imagen no se generó correctamente: {output_path}"}),
+                'headers': {'Content-Type': 'application/json'}
+            }
+
         # Subir a S3
         s3 = boto3.client("s3")
         s3_key = f"er-diagrama-{user_id}.png"
+        print(f"Subiendo el archivo {output_path} a S3 con la clave {s3_key}")
         s3.upload_file(output_path, bucket_name, s3_key)
+
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
-        
+
         return {
             'statusCode': 200,
-            'body': json.dumps({
-                'imageUrl': image_url,
-                'message': 'Diagrama generado exitosamente'
-            }),
+            'body': json.dumps({'imageUrl': image_url}),
             'headers': {'Content-Type': 'application/json'}
         }
-        
+
     except Exception as e:
-        print(f"Error completo: {str(e)}")
+        # Detallar el error
+        print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
-            'body': json.dumps({
-                'error': f'Error al generar el diagrama: {str(e)}',
-                'suggestion': 'Verifique: 1) El formato del DSL 2) Que Graphviz esté instalado 3) Los permisos en /tmp'
-            }),
+            'body': json.dumps({'error': f'Ocurrió un error: {str(e)}'}),
             'headers': {'Content-Type': 'application/json'}
         }
-    finally:
-        # Limpieza
-        if 'input_source' in locals() and os.path.exists(input_source) and input_source != dsl_content:
-            os.remove(input_source)
-        print(f"Contenido de /tmp al final: {os.listdir('/tmp')}")
