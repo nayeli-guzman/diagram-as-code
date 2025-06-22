@@ -79,6 +79,10 @@ def lambda_handler(event, context):
                 'headers': {'Content-Type': 'application/json'}
             }
 
+        # Verificar contenido del archivo .dsl
+        with open(dsl_path, 'r') as file:
+            print(f"Contenido del archivo .dsl: {file.read()}")
+
         # Renderizar como imagen PNG
         print(f"Generando diagrama ER en {output_path}")
         render_er(dsl_path, output_path)
