@@ -3,7 +3,6 @@ import bcrypt
 import uuid
 import json
 import time
-from Utils import load_body
 
 HEADERS = {
     "Access-Control-Allow-Origin": "*",
@@ -13,13 +12,13 @@ HEADERS = {
 # Caducidad en segundos (5 horas)
 EXPIRE_SECONDS = 5 * 3600
 
-
 def lambda_handler(event, context):
     try:
-        body = load_body(event)
-        user_id = body.get('user_id')
+        # Parsea el cuerpo JSON directamente
+        body = json.loads(event.get('body') or '{}')
+        user_id   = body.get('user_id')
         tenant_id = body.get('tenant_id')
-        password = body.get('password')
+        password  = body.get('password')
 
         if not all([user_id, tenant_id, password]):
             return {
