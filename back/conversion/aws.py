@@ -7,7 +7,7 @@ def lambda_handler(event, context):
     os.environ["PATH"] += ":/opt/bin"
     print(os.environ["PATH"])
     
-    bin_dir = '/opt/bin'
+    bin_dir = ':/opt/bin'
     try:
         print("sssss")
         bin_files = os.listdir(bin_dir)
