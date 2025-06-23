@@ -121,7 +121,7 @@ def lambda_handler(event, context):
 
     code = json.loads(body['code']) if 'code 'in body else generate_random()
     title = body['title'] if 'title' in body else "Diagrama JSON"
-    filepath = "tmp/diagrama"
+    filepath = "/tmp/diagrama"
 
     print(code)
 
