@@ -184,38 +184,11 @@ def lambda_handler(event, context):
 
         sql_keywords = ["CREATE TABLE", "create table", "CREATE INDEX", "create index", "ALTER TABLE", "alter table"]
         if any(dsl_cleaned.strip().startswith(kw) for kw in sql_keywords):
-            import sqlite3
-            import uuid
-            db_path = f"/tmp/{user_id.replace('@','_').replace('.','_')}_{uuid.uuid4().hex}.db"
-            print(f"Creando base de datos temporal en {db_path} y ejecutando SQL del usuario...")
-            try:
-                conn = sqlite3.connect(db_path)
-                cursor = conn.cursor()
-                cursor.execute('PRAGMA foreign_keys = ON;')
-                cursor.executescript(dsl_cleaned)
-                # DEBUG: Listar tablas y relaciones
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                tables = cursor.fetchall()
-                print(f"Tablas creadas: {tables}")
-                for table in tables:
-                    cursor.execute(f"PRAGMA foreign_key_list({table[0]});")
-                    fks = cursor.fetchall()
-                    print(f"Foreign keys en {table[0]}: {fks}")
-                conn.commit()
-                conn.close()
-                import time
-                time.sleep(0.1)  # Espera breve para asegurar que el archivo esté listo
-                # Generar el diagrama
-                render_er(f"sqlite:///{db_path}", output_path)
-                if os.path.exists(output_path):
-                    print(f"¡Diagrama generado como {output_path}!")
-                else:
-                    print("No se generó el diagrama.")
-            except Exception as e:
-                print(f"Error ejecutando SQL: {str(e)}")
+            ok = crear_sqlite_y_diagrama_desde_sql(dsl_cleaned, output_path, user_id)
+            if not ok:
                 return {
                     'statusCode': 500,
-                    'body': json.dumps({'error': f"Error ejecutando SQL: {str(e)}"}),
+                    'body': json.dumps({'error': f"No se pudo generar el diagrama ER a partir del SQL proporcionado."}),
                     'headers': {'Content-Type': 'application/json'}
                 }
             # Subir a S3
@@ -229,6 +202,42 @@ def lambda_handler(event, context):
                 'body': json.dumps({'imageUrl': image_url}),
                 'headers': {'Content-Type': 'application/json'}
             }
+
+def crear_sqlite_y_diagrama_desde_sql(dsl_cleaned, output_path, user_id):
+    """
+    Crea una base de datos SQLite temporal, ejecuta el SQL recibido y genera el diagrama ER.
+    Devuelve True si el diagrama se generó correctamente, False en caso contrario.
+    """
+    import sqlite3, uuid, time
+    db_path = f"/tmp/{user_id.replace('@','_').replace('.','_')}_{uuid.uuid4().hex}.db"
+    print(f"Creando base de datos temporal en {db_path} y ejecutando SQL del usuario...")
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('PRAGMA foreign_keys = ON;')
+        cursor.executescript(dsl_cleaned)
+        # DEBUG: Listar tablas y relaciones
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        print(f"Tablas creadas: {tables}")
+        for table in tables:
+            cursor.execute(f"PRAGMA foreign_key_list({table[0]});")
+            fks = cursor.fetchall()
+            print(f"Foreign keys en {table[0]}: {fks}")
+        conn.commit()
+        conn.close()
+        time.sleep(0.1)  # Espera breve para asegurar que el archivo esté listo
+        # Generar el diagrama
+        render_er(f"sqlite:///{db_path}", output_path)
+        if os.path.exists(output_path):
+            print(f"¡Diagrama generado como {output_path}!")
+            return True
+        else:
+            print("No se generó el diagrama.")
+            return False
+    except Exception as e:
+        print(f"Error ejecutando SQL: {str(e)}")
+        return False
 
 def generar_diagrama_sqlite_local():
     """
