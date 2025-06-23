@@ -31,12 +31,13 @@ const DiagramEditor: React.FC = () => {
   const [githubUrl, setGithubUrl] = useState("");
   const [zoom, setZoom] = useState(100);
   const [isExporting, setIsExporting] = useState(false);
-  const imageRef = useRef<HTMLImageElement>(null);
+    const imageRef = useRef<HTMLImageElement>(null);
   const { user, logout } = useAuth();
 
   const user_id = localStorage.getItem("userEmail");
   const tenant_id = localStorage.getItem("userName");
   const token = localStorage.getItem('authToken');  
+  const [imageUrl, setImageUrl] = useState('');
 
 
   const diagramTypes: {
@@ -194,17 +195,13 @@ with Diagram("Generic Diagram", show=False):
       } else {
         toast.error("Hubo un problema al enviar los datos.");
       }
+
+      setGeneratedImageUrl(response.url);
+      console.log("URL de la imagen generada:", response.url);
+      toast.success("¡Diagrama generado correctamente!");
+
     } catch (error) {
       toast.error("Error al hacer la solicitud al backend.");
-    }
-    try {
-      const result = await diagramsAPI.generate(code, diagramType);
-      setGeneratedImageUrl(result.imageUrl);
-      toast.success("¡Diagrama generado correctamente!");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error al generar el diagrama"
-      );
     } finally {
       setIsGenerating(false);
     }
@@ -333,6 +330,12 @@ with Diagram("Generic Diagram", show=False):
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diagramType]); // Only depend on diagramType to avoid infinite loops
+
+  React.useEffect(() => {
+    if (imageRef.current) {
+      console.log(imageRef.current.src);  // Para verificar que la URL esté bien asignada
+    }
+  }, [imageUrl]);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
