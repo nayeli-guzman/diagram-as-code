@@ -4,14 +4,11 @@ import tempfile
 
 bucket_name = "mi-bucket-diagrams"
 output_path = "/tmp/diagrama_er.png"
-
-# Nombre de la función Lambda de validación
 user_validar = f"diagram-usuarios-dev-validar"
 
 def lambda_handler(event, context):
-    print(event)
     
-    # Entrada (json)
+    print(event)
     body = json.loads(event['body'])
     
     # Extraer token desde el header de autorización
