@@ -191,6 +191,7 @@ def lambda_handler(event, context):
             try:
                 conn = sqlite3.connect(db_path)
                 cursor = conn.cursor()
+                cursor.execute('PRAGMA foreign_keys = ON;')
                 cursor.executescript(dsl_cleaned)
                 # DEBUG: Listar tablas y relaciones
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
