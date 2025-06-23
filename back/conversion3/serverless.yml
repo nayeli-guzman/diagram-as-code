@@ -3,17 +3,11 @@ service: json-diagram-generator
 
 provider:
   name: aws
+  runtime: python3.13
+  timeout: 30
   region: us-east-1
   iam:
     role: arn:aws:iam::254780740814:role/LabRole
-    roleStatements:
-      - Effect: Allow
-        Action:
-          - s3:PutObject
-          - s3:PutObjectAcl
-          - s3:GetObject
-        Resource: "arn:aws:s3:::*/*"
-
   ecr:
     images:
       generate-diagram:
