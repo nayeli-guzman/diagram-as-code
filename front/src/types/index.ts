@@ -41,12 +41,8 @@ export interface DiagramGenerationResponse {
 
 export type DiagramType =
   | "aws"
-  | "azure"
-  | "gcp"
-  | "k8s"
-  | "network"
-  | "onprem"
-  | "programming"
+  | "json"
+  | "er"
   | "generic";
 
 export interface DiagramTemplate {

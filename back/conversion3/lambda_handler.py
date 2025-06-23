@@ -70,20 +70,26 @@ def upload_to_s3(filepath, user_id, bucket_name):
         hash = str(uuid.uuid4())
         s3_key = f'diagrama-json-{user_id}-{hash}.png'
     
-        s3_client.upload_file(
-            Filename=filepath, 
-            Bucket=bucket_name,                     
-            Key=s3_key,                          
-            ExtraArgs={'ACL': 'public-read'}             
-        )
+        # s3_client.upload_file(
+        #     Filename=filepath, 
+        #     Bucket=bucket_name,                     
+        #     Key=s3_key,                          
+        #     ExtraArgs={'ACL': 'public-read'}             
+        # )
+
+        mime_type = 'image/png' 
+
+        s3_client.put_object(
+            Body=open(filepath, 'rb'),  # Abre el archivo en modo binario
+            Bucket=bucket_name,
+            Key=s3_key,
+            ContentType=mime_type,
+            ACL='public-read'  
+        ) 
             
         s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
         
-        return {
-            'success': True,
-            'url': s3_url,
-            'bucket': bucket_name
-        }
+        return s3_url
         
     except Exception as e:
         return {
@@ -146,10 +152,6 @@ def lambda_handler(event, context):
             'Access-Control-Allow-Headers': 'Content-Type',
             'Access-Control-Allow-Methods': 'POST, OPTIONS'
         },
-        'body': json.dumps({
-            'message': 'Diagrama generado exitosamente',
-            'contentType': 'image/png',
-            's3': s3_response
-        })
+        'body': json.dumps({'imageUrl': s3_response})
     }
     

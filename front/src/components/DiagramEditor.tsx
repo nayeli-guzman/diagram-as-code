@@ -39,6 +39,8 @@ const DiagramEditor: React.FC = () => {
   const token = localStorage.getItem('authToken');  
   const [imageUrl, setImageUrl] = useState('');
 
+  const [request, setRequest] = useState('https://24h9prbdzc.execute-api.us-east-1.amazonaws.com/dev/erd')
+
 
   const diagramTypes: {
     value: DiagramType;
@@ -46,26 +48,16 @@ const DiagramEditor: React.FC = () => {
     description: string;
   }[] = [
     { value: "aws", label: "AWS", description: "Amazon Web Services" },
-    { value: "azure", label: "Azure", description: "Microsoft Azure" },
-    {
-      value: "gcp",
-      label: "Google Cloud",
-      description: "Google Cloud Platform",
-    },
-    { value: "k8s", label: "Kubernetes", description: "Kubernetes Resources" },
-    { value: "network", label: "Network", description: "Network Architecture" },
-    {
-      value: "onprem",
-      label: "On-Premise",
-      description: "On-Premise Infrastructure",
-    },
-    {
-      value: "programming",
-      label: "Programming",
-      description: "Programming Languages",
-    },
+    { value: "json", label: "JSON", description: "Json Diagram (Desarrollo)"},
+    { value: "er", label: "E-R", description: "Diagram (Desarrollo)" },
     { value: "generic", label: "Generic", description: "Generic Components" },
   ];
+  const API_ENDPOINTS: Record<DiagramType, string> = {
+  aws:  'https://dlfz6n75y3.execute-api.us-east-1.amazonaws.com/dev/conversion/aws',
+  json: 'https://eaeu5ax03c.execute-api.us-east-1.amazonaws.com/dev/generate-diagram',
+  er:   'https://24h9prbdzc.execute-api.us-east-1.amazonaws.com/dev/erd',
+  generic: 'https://dlfz6n75y3.execute-api.us-east-1.amazonaws.com/dev/conversion/aws' 
+}
 
   const getPlaceholderCode = (type: DiagramType): string => {
     const placeholders = {
@@ -80,71 +72,51 @@ with Diagram("Web Service", show=False):
     db = RDS("Database")
     
     lb >> web >> db`,
-      azure: `from diagrams import Diagram
-from diagrams.azure.compute import VirtualMachines
-from diagrams.azure.database import SQLDatabases
-from diagrams.azure.network import LoadBalancers
+      er:`CREATE TABLE department (
+  id INTEGER PRIMARY KEY,
+  name TEXT
+);
 
-with Diagram("Azure Architecture", show=False):
-    lb = LoadBalancers("Load Balancer")
-    vm = VirtualMachines("VM")
-    db = SQLDatabases("SQL Database")
-    
-    lb >> vm >> db`,
-      gcp: `from diagrams import Diagram
-from diagrams.gcp.compute import ComputeEngine
-from diagrams.gcp.database import SQL
-from diagrams.gcp.network import LoadBalancing
+CREATE TABLE employee (
+  id INTEGER PRIMARY KEY,
+  name TEXT,
+  department_id INTEGER,
+  FOREIGN KEY(department_id) REFERENCES department(id)
+);
 
-with Diagram("GCP Service", show=False):
-    lb = LoadBalancing("Load Balancer")
-    gce = ComputeEngine("Compute Engine")
-    sql = SQL("Cloud SQL")
-    
-    lb >> gce >> sql`,
-      k8s: `from diagrams import Diagram
-from diagrams.k8s.compute import Pod
-from diagrams.k8s.network import Service
-from diagrams.k8s.storage import PersistentVolume
+CREATE TABLE project (
+  id INTEGER PRIMARY KEY,
+  name TEXT
+);
 
-with Diagram("Kubernetes Cluster", show=False):
-    svc = Service("Service")
-    pod = Pod("Pod")
-    pv = PersistentVolume("Storage")
-    
-    svc >> pod >> pv`,
-      network: `from diagrams import Diagram
-from diagrams.generic.network import Router, Switch
-from diagrams.generic.compute import Rack
-
-with Diagram("Network Topology", show=False):
-    router = Router("Router")
-    switch = Switch("Switch")
-    server = Rack("Server")
-    
-    router >> switch >> server`,
-      onprem: `from diagrams import Diagram
-from diagrams.onprem.compute import Server
-from diagrams.onprem.database import PostgreSQL
-from diagrams.onprem.network import Nginx
-
-with Diagram("On-Premise Setup", show=False):
-    nginx = Nginx("Load Balancer")
-    server = Server("App Server")
-    db = PostgreSQL("Database")
-    
-    nginx >> server >> db`,
-      programming: `from diagrams import Diagram
-from diagrams.programming.language import Python
-from diagrams.programming.framework import React
-from diagrams.programming.flowchart import Database
-
-with Diagram("Tech Stack", show=False):
-    frontend = React("Frontend")
-    backend = Python("Backend")
-    db = Database("Database")
-    
-    frontend >> backend >> db`,
+CREATE TABLE assignment (
+  employee_id INTEGER,
+  project_id INTEGER,
+  PRIMARY KEY(employee_id, project_id),
+  FOREIGN KEY(employee_id) REFERENCES employee(id),
+  FOREIGN KEY(project_id) REFERENCES project(id)
+);`
+      ,
+      json:`{
+  "Empresa": {
+    "Ventas": {
+      "Domestic": {},
+      "International": {}
+    }
+  },
+  "Ingenieria": {
+    "Backend": {
+      "API": {},
+      "BaseDeDatos": {}
+    }
+  },
+  "Frontend": {},
+  "Recursos_Humanos": {
+    "Seleccion": {},
+    "Formacion": {}
+  },
+  "Soporte": {}
+}` ,
       generic: `from diagrams import Diagram
 from diagrams.generic.blank import Blank
 
@@ -166,24 +138,19 @@ with Diagram("Generic Diagram", show=False):
       return;
     }
 
-    if (!code.includes("from diagrams")) {
-      toast.error("El código debe incluir importaciones de diagrams");
-      return;
-    }
-
     setIsGenerating(true);
         setIsExporting(true);
     console.log("Enviando datos al backend...");
     console.log({ user_id, tenant_id, code, token });
     try {
-      const response = await fetch('https://dlfz6n75y3.execute-api.us-east-1.amazonaws.com/dev/conversion/aws', {
+      const response = await fetch(request, {
         method: 'POST',
         headers: {
             ...(token ? { 'Authorization': token } : {})
           },
         body: JSON.stringify({
           user_id: user_id,         // ID del usuario
-          tenant_id: "UTEC",     // ID del tenant
+          tenant_id: tenant_id,     // ID del tenant
           code: code           // Código del diagrama que el usuario escribió
         })
       });
@@ -317,23 +284,19 @@ with Diagram("Generic Diagram", show=False):
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 25, 25));
   const handleResetZoom = () => setZoom(100);
 
-  const handleTypeChange = useCallback(
-    (newType: DiagramType) => {
-      setDiagramType(newType);
-      if (!code.trim()) {
-        setCode(getPlaceholderCode(newType));
-      }
-    },
-    [code]
-  );
-
-  // Initialize with placeholder code
   React.useEffect(() => {
-    if (!code.trim()) {
-      setCode(getPlaceholderCode(diagramType));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diagramType]); // Only depend on diagramType to avoid infinite loops
+    console.log('El usuario seleccionó el tipo:', diagramType)
+    setCode(getPlaceholderCode(diagramType))
+    const url = API_ENDPOINTS[diagramType] || ''
+    setRequest(url) 
+    console.log(request)
+    
+  }, [diagramType])
+
+  const handleTypeChange = (newType: DiagramType) => {
+    setDiagramType(newType);            
+  }
+
 
   React.useEffect(() => {
     if (imageRef.current) {
