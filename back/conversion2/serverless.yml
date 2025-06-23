@@ -9,7 +9,7 @@ provider:
   timeout: 30
   iam:
     role: arn:aws:iam::254780740814:role/LabRole
-    ecr:
+  ecr:
     images:
       entidad_relacion:
         path: .  
