@@ -1,7 +1,6 @@
 org: adrianurbinamendoza
 service: erd-generator
 
-
 provider:
   name: aws
   runtime: python3.13
