@@ -130,9 +130,8 @@ def lambda_handler(event, context):
     
     # generando el diagrama
 
-    code = body['code'] if 'code 'in body else generate_random()
+    code = json.loads(body['code']) if 'code 'in body else generate_random()
     title = body['title'] if 'title' in body else "Diagrama JSON"
-    
     filepath = "tmp/diagrama"
 
     try:
@@ -146,7 +145,7 @@ def lambda_handler(event, context):
     
     s3_response = {}
     
-    s3_response = upload_to_s3(f"{filepath}.png", user_id, bucket_name, title)
+    s3_response = upload_to_s3(f"{filepath}.png", user_id, bucket_name)
     
     return {
         'statusCode': 200,

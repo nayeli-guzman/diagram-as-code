@@ -1,11 +1,11 @@
-org: mateoismael
+org: nayeliguzman
 service: json-diagram-generator
 
 provider:
   name: aws
   region: us-east-1
   iam:
-    role: arn:aws:iam::111097882274:role/LabRole
+    role: arn:aws:iam::254780740814:role/LabRole
     roleStatements:
       - Effect: Allow
         Action:
