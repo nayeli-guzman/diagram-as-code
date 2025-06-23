@@ -1,5 +1,5 @@
 
-from diagrams import Cluster, Diagram 
+from diagrams import Cluster, Diagram, Node 
 from diagrams.aws.compute import ECS, EKS, Lambda
 from diagrams.aws.database import Redshift
 from diagrams.aws. integration import SQS
@@ -67,6 +67,7 @@ def lambda_handler(event, context):
             'Cluster': Cluster,
             'Route53': Route53,
             'os': os,
+            'Node': Node,
         }
 
         modified_code = re.sub(r"^with Diagram\([^\)]*\):\n", 
