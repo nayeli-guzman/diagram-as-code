@@ -14,10 +14,11 @@ cors_headers = {
 }
 
 def lambda_handler(event, context):
-    
     print(event)
     body = json.loads(event['body'])
-    
+    # Solo permitir 'code' como campo válido
+    code = body.get('code')
+
     # Extraer token desde el header de autorización
     token = event['headers']['Authorization']
     tenant_id = body['tenant_id']
@@ -29,18 +30,15 @@ def lambda_handler(event, context):
         "token": token,
         "tenant_id": tenant_id
     }
-    
     # Invocar la función de validación del token
     invoke_response = lambda_client.invoke(
         FunctionName=user_validar,
         InvocationType='RequestResponse',
         Payload=json.dumps(payload)
     )
-    
     # Leer la respuesta de la función de validación
     response = json.loads(invoke_response['Payload'].read())
     print(response)
-    
     # Si la respuesta es 403, significa que el acceso no está autorizado
     if response['statusCode'] == 403:
         return {
@@ -49,13 +47,12 @@ def lambda_handler(event, context):
             'headers': cors_headers
         }
     # Si el token es válido, continuar con la creación del diagrama
-    if not body.get("dsl") or not user_id:
+    if not code or not user_id:
         return {
             'statusCode': 400,
-            'body': json.dumps({'error': 'Falta dsl o user_id'}),
+            'body': json.dumps({'error': 'Falta code o user_id'}),
             'headers': cors_headers
         }
-
     try:
         # Verificar si /tmp existe y es escribible
         if not os.path.exists('/tmp'):
@@ -66,15 +63,13 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'El directorio /tmp no es escribible'}),
                 'headers': cors_headers
             }
-
-        # Preprocesar el DSL: Limpiar caracteres de escape y saltos de línea
-        dsl_cleaned = body["dsl"].replace("\\n", "\n").replace("\\t", "\t").strip()
-        print(f"DSL limpio:\n{dsl_cleaned}")  # Verifica si el DSL se limpió correctamente
-
-        # Detectar si el DSL es SQL (CREATE TABLE, etc.)
+        # Preprocesar el código: Limpiar caracteres de escape y saltos de línea
+        code_cleaned = code.replace("\\n", "\n").replace("\\t", "\t").strip()
+        print(f"Código limpio:\n{code_cleaned}")  # Verifica si el código se limpió correctamente
+        # Detectar si el código es SQL (CREATE TABLE, etc.)
         sql_keywords = ["CREATE TABLE", "create table", "CREATE INDEX", "create index", "ALTER TABLE", "alter table"]
-        if any(dsl_cleaned.strip().startswith(kw) for kw in sql_keywords):
-            ok = crear_sqlite_y_diagrama_desde_sql(dsl_cleaned, output_path, user_id)
+        if any(code_cleaned.strip().startswith(kw) for kw in sql_keywords):
+            ok = crear_sqlite_y_diagrama_desde_sql(code_cleaned, output_path, user_id)
             if not ok:
                 return {
                     'statusCode': 500,
@@ -99,18 +94,17 @@ def lambda_handler(event, context):
                 'headers': cors_headers,
                 'body': json.dumps({'imageUrl': image_url})
             }
-
         # Si es una URL SQLAlchemy (sqlite://, mysql://, etc.)
         is_sqlalchemy_url = False
-        if body["dsl"].strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://")):
+        if code_cleaned.strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://")):
             is_sqlalchemy_url = True
         if is_sqlalchemy_url:
             print("Detectado SQLAlchemy URL, pasando directamente a renderización.")
             # Si es SQLite y el archivo no existe, crearlo con una tabla de ejemplo
-            if body["dsl"].strip().startswith("sqlite://"):
+            if code_cleaned.strip().startswith("sqlite://"):
                 import sqlite3
                 import re
-                match = re.match(r"sqlite:///(.*)", body["dsl"].strip())
+                match = re.match(r"sqlite:///(.*)", code_cleaned.strip())
                 if match:
                     db_path = match.group(1)
                     if not db_path.startswith("/"):
@@ -122,9 +116,9 @@ def lambda_handler(event, context):
                         cursor.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name VARCHAR)''')
                         conn.commit()
                         conn.close()
-                    body["dsl"] = f"sqlite:///{db_path}"
+                    code_cleaned = f"sqlite:///{db_path}"
             try:
-                render_er(body["dsl"], output_path)
+                render_er(code_cleaned, output_path)
             except Exception as e:
                 print(f"Error durante el renderizado: {str(e)}")
                 return {
@@ -135,9 +129,9 @@ def lambda_handler(event, context):
         else:
             # Si no es SQL ni URL, asumir archivo DBML/DSL
             try:
-                # Escribir DSL limpio a archivo temporal
+                # Escribir código limpio a archivo temporal
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".dsl", mode='w') as dsl_file:
-                    dsl_file.write(dsl_cleaned)
+                    dsl_file.write(code_cleaned)
                     dsl_path = dsl_file.name
                     print(f"DSL Path creado: {dsl_path}")
                 render_er(dsl_path, output_path)
@@ -148,7 +142,6 @@ def lambda_handler(event, context):
                     'body': json.dumps({'error': f"Error durante el renderizado: {str(e)}"}),
                     'headers': cors_headers
                 }
-
         # Verificar si la imagen se generó correctamente
         if not os.path.exists(output_path):
             return {
@@ -156,7 +149,6 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': f"El archivo de imagen no se generó correctamente: {output_path}"}),
                 'headers': cors_headers
             }
-
         # Subir a S3
         s3 = boto3.client("s3")
         s3_key = f"er-diagrama-{user_id}.png"
@@ -173,7 +165,6 @@ def lambda_handler(event, context):
             'headers': cors_headers,
             'body': json.dumps({'imageUrl': image_url})
         }
-
     except Exception as e:
         # Detallar el error
         print(f"Error: {str(e)}")
