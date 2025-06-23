@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import Editor from "@monaco-editor/react";
 import {
   Play,
@@ -14,7 +14,7 @@ import {
   FileText as FilePdf,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import { diagramsAPI, githubAPI } from "../utils/api";
+import { githubAPI } from "../utils/api";
 import toast from "react-hot-toast";
 import type { DiagramType } from "../types";
 import { saveAs } from "file-saver";
@@ -37,10 +37,16 @@ const DiagramEditor: React.FC = () => {
   const user_id = localStorage.getItem("userEmail");
   const tenant_id = localStorage.getItem("userName");
   const token = localStorage.getItem('authToken');  
-  const [imageUrl, setImageUrl] = useState('');
 
   const [request, setRequest] = useState('https://24h9prbdzc.execute-api.us-east-1.amazonaws.com/dev/erd')
 
+  function getRawGitHubUrl(url: string): string {
+    const regex = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/
+    const match = url.match(regex)
+    return match
+      ? `https://raw.githubusercontent.com/${match[1]}/${match[2]}/${match[3]}/${match[4]}`
+      : url
+  }
 
   const diagramTypes: {
     value: DiagramType;
@@ -178,36 +184,49 @@ with Diagram("Generic Diagram", show=False):
     }
   };
 
-  const handleLoadFromGithub = async () => {
+  const handleLoadFromGithub = useCallback(async () => {
     if (!githubUrl.trim()) {
-      toast.error("Por favor, ingresa una URL de GitHub");
-      return;
+      toast.error('Por favor pega una URL de GitHub válida')
+      return
     }
-
+    //setIsLoadingUrl(true)
     try {
-      const content = await githubAPI.fetchFile(githubUrl);
-      setCode(content);
-      toast.success("Archivo cargado desde GitHub");
-      setGithubUrl("");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error al cargar el archivo"
-      );
+      const rawUrl = getRawGitHubUrl(githubUrl.trim())
+      const resp = await fetch(rawUrl)
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+      const text = await resp.text()
+      setCode(text)
+      toast.success('Código cargado desde GitHub')
+    } catch (err) {
+      console.error(err)
+      toast.error('No se pudo cargar el archivo desde esa URL')
+    } finally {
+      //setIsLoadingUrl(false)
     }
-  };
+  }, [githubUrl])
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        setCode(content);
-        toast.success("Archivo cargado correctamente");
-      };
-      reader.readAsText(file);
-    }
-  };
+  const handleFileUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      // opcional: validar extensión
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      if (!['txt', 'py'].includes(ext!)) {
+        alert('Solo se permiten .txt o .py')
+        return
+      }
+
+      try {
+        const text = await file.text()   // lee todo como string
+        setCode(text)                    // vuelca al textarea/editor
+      } catch (err) {
+        console.error(err)
+        alert('Error leyendo el archivo')
+      }
+    },
+    []
+  )
 
   // Export functions
   const handleExportSVG = async () => {
@@ -314,12 +333,6 @@ with Diagram("Generic Diagram", show=False):
     setDiagramType(newType);            
   }
 
-
-  React.useEffect(() => {
-    if (imageRef.current) {
-      console.log(imageRef.current.src);  // Para verificar que la URL esté bien asignada
-    }
-  }, [imageUrl]);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -455,7 +468,7 @@ with Diagram("Generic Diagram", show=False):
                   <>
                     <button
                       onClick={handleExportSVG}
-                      disabled={isExporting}
+                      //disabled={isExporting}
                       className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ImageIcon size={16} />
@@ -473,7 +486,7 @@ with Diagram("Generic Diagram", show=False):
 
                     <button
                       onClick={handleExportPDF}
-                      disabled={isExporting}
+                      //disabled={isExporting}
                       className="flex items-center space-x-2 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <FilePdf size={16} />
