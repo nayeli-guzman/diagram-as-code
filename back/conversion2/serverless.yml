@@ -1,8 +1,6 @@
 org: adrianurbinamendoza
 service: erd-generator
 
-plugins:
-  - serverless-python-requirements
 
 provider:
   name: aws
@@ -11,20 +9,19 @@ provider:
   timeout: 30
   iam:
     role: arn:aws:iam::254780740814:role/LabRole
+    ecr:
+    images:
+      entidad_relacion:
+        path: .  
 
-custom:
-  pythonRequirements:
-    dockerizePip: true
-    layer: false
 
 functions:
   generate-erd:
-    handler: aws.lambda_handler
+    image:
+      name: entidad_relacion
     events:
       - http:
           path: /erd
           method: post
           cors: true
-    layers:
-      - arn:aws:lambda:us-east-1:254780740814:layer:graphviz-layer:3  
-
+          integration: lambda-proxy
