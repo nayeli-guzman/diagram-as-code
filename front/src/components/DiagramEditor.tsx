@@ -14,7 +14,6 @@ import {
   FileText as FilePdf,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import { githubAPI } from "../utils/api";
 import toast from "react-hot-toast";
 import type { DiagramType } from "../types";
 import { saveAs } from "file-saver";
