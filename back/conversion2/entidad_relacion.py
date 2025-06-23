@@ -67,44 +67,31 @@ def lambda_handler(event, context):
 
         # Preprocesar el DSL: Limpiar caracteres de escape y saltos de línea
         dsl_cleaned = body["dsl"].replace("\\n", "\n").replace("\\t", "\t").strip()
-        
-        # Agregar depuración para ver el DSL limpio
         print(f"DSL limpio:\n{dsl_cleaned}")  # Verifica si el DSL se limpió correctamente
 
-        # Escribir DSL limpio a archivo temporal
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".dsl", mode='w') as dsl_file:
-            dsl_file.write(dsl_cleaned)
-            dsl_path = dsl_file.name
-            print(f"DSL Path creado: {dsl_path}")  # Verifica la ruta del archivo temporal
-
-        # Verificar si el archivo temporal se ha creado correctamente
-        if not os.path.exists(dsl_path):
+        # Detectar si el DSL es SQL (CREATE TABLE, etc.)
+        sql_keywords = ["CREATE TABLE", "create table", "CREATE INDEX", "create index", "ALTER TABLE", "alter table"]
+        if any(dsl_cleaned.strip().startswith(kw) for kw in sql_keywords):
+            ok = crear_sqlite_y_diagrama_desde_sql(dsl_cleaned, output_path, user_id)
+            if not ok:
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'error': f"No se pudo generar el diagrama ER a partir del SQL proporcionado."}),
+                    'headers': {'Content-Type': 'application/json'}
+                }
+            # Subir a S3
+            s3 = boto3.client("s3")
+            s3_key = f"er-diagrama-{user_id}.png"
+            print(f"Subiendo el archivo {output_path} a S3 con la clave {s3_key}")
+            s3.upload_file(output_path, bucket_name, s3_key)
+            image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
             return {
-                'statusCode': 500,
-                'body': json.dumps({'error': f"El archivo DSL no se creó correctamente: {dsl_path}"}),
+                'statusCode': 200,
+                'body': json.dumps({'imageUrl': image_url}),
                 'headers': {'Content-Type': 'application/json'}
             }
 
-        # Verificar contenido del archivo .dsl
-        with open(dsl_path, 'r') as file:
-            dsl_content = file.read()
-            print(f"Contenido del archivo .dsl:\n{dsl_content}")
-
-        # Intentar importar graphviz para verificar que está disponible
-        try:
-            import graphviz
-            print("Graphviz importado correctamente")
-        except Exception as e:
-            print(f"Error al importar Graphviz: {str(e)}")
-            return {
-                'statusCode': 500,
-                'body': json.dumps({'error': f"Error al importar Graphviz: {str(e)}"}),
-                'headers': {'Content-Type': 'application/json'}
-            }
-
-        # Renderizar como imagen PNG
-        print(f"Generando diagrama ER en {output_path}")
-        # Comprobar si el DSL parece ser una URL SQLAlchemy (mysql://, sqlite://, etc.)
+        # Si es una URL SQLAlchemy (sqlite://, mysql://, etc.)
         is_sqlalchemy_url = False
         if body["dsl"].strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://")):
             is_sqlalchemy_url = True
@@ -114,11 +101,9 @@ def lambda_handler(event, context):
             if body["dsl"].strip().startswith("sqlite://"):
                 import sqlite3
                 import re
-                # Extraer ruta del archivo SQLite
                 match = re.match(r"sqlite:///(.*)", body["dsl"].strip())
                 if match:
                     db_path = match.group(1)
-                    # Si la ruta no es absoluta, ponerla en /tmp
                     if not db_path.startswith("/"):
                         db_path = f"/tmp/{db_path}"
                     if not os.path.exists(db_path):
@@ -128,10 +113,9 @@ def lambda_handler(event, context):
                         cursor.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name VARCHAR)''')
                         conn.commit()
                         conn.close()
-                    # Actualizar la URL para que apunte a /tmp
                     body["dsl"] = f"sqlite:///{db_path}"
             try:
-                render_er(body["dsl"], output_path)  # Pasar URL directamente
+                render_er(body["dsl"], output_path)
             except Exception as e:
                 print(f"Error durante el renderizado: {str(e)}")
                 return {
@@ -140,8 +124,13 @@ def lambda_handler(event, context):
                     'headers': {'Content-Type': 'application/json'}
                 }
         else:
-            # Si no es una URL SQLAlchemy, usar el archivo .dsl
+            # Si no es SQL ni URL, asumir archivo DBML/DSL
             try:
+                # Escribir DSL limpio a archivo temporal
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".dsl", mode='w') as dsl_file:
+                    dsl_file.write(dsl_cleaned)
+                    dsl_path = dsl_file.name
+                    print(f"DSL Path creado: {dsl_path}")
                 render_er(dsl_path, output_path)
             except Exception as e:
                 print(f"Error durante el renderizado: {str(e)}")
@@ -164,9 +153,7 @@ def lambda_handler(event, context):
         s3_key = f"er-diagrama-{user_id}.png"
         print(f"Subiendo el archivo {output_path} a S3 con la clave {s3_key}")
         s3.upload_file(output_path, bucket_name, s3_key)
-
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
-
         return {
             'statusCode': 200,
             'body': json.dumps({'imageUrl': image_url}),
@@ -181,27 +168,6 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': f'Ocurrió un error: {str(e)}'}),
             'headers': {'Content-Type': 'application/json'}
         }
-
-        sql_keywords = ["CREATE TABLE", "create table", "CREATE INDEX", "create index", "ALTER TABLE", "alter table"]
-        if any(dsl_cleaned.strip().startswith(kw) for kw in sql_keywords):
-            ok = crear_sqlite_y_diagrama_desde_sql(dsl_cleaned, output_path, user_id)
-            if not ok:
-                return {
-                    'statusCode': 500,
-                    'body': json.dumps({'error': f"No se pudo generar el diagrama ER a partir del SQL proporcionado."}),
-                    'headers': {'Content-Type': 'application/json'}
-                }
-            # Subir a S3
-            s3 = boto3.client("s3")
-            s3_key = f"er-diagrama-{user_id}.png"
-            print(f"Subiendo el archivo {output_path} a S3 con la clave {s3_key}")
-            s3.upload_file(output_path, bucket_name, s3_key)
-            image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
-            return {
-                'statusCode': 200,
-                'body': json.dumps({'imageUrl': image_url}),
-                'headers': {'Content-Type': 'application/json'}
-            }
 
 def crear_sqlite_y_diagrama_desde_sql(dsl_cleaned, output_path, user_id):
     """
