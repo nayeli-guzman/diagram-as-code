@@ -192,8 +192,18 @@ def lambda_handler(event, context):
                 conn = sqlite3.connect(db_path)
                 cursor = conn.cursor()
                 cursor.executescript(dsl_cleaned)
+                # DEBUG: Listar tablas y relaciones
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                tables = cursor.fetchall()
+                print(f"Tablas creadas: {tables}")
+                for table in tables:
+                    cursor.execute(f"PRAGMA foreign_key_list({table[0]});")
+                    fks = cursor.fetchall()
+                    print(f"Foreign keys en {table[0]}: {fks}")
                 conn.commit()
                 conn.close()
+                import time
+                time.sleep(0.1)  # Espera breve para asegurar que el archivo esté listo
                 # Generar el diagrama
                 render_er(f"sqlite:///{db_path}", output_path)
                 if os.path.exists(output_path):
