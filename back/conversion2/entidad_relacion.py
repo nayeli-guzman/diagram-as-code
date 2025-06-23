@@ -6,6 +6,13 @@ bucket_name = "mi-bucket-diagrams"
 output_path = "/tmp/diagrama_er.png"
 user_validar = f"diagram-usuarios-dev-validar"
 
+cors_headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+}
+
 def lambda_handler(event, context):
     
     print(event)
@@ -39,27 +46,25 @@ def lambda_handler(event, context):
         return {
             'statusCode': 403,
             'body': json.dumps({'status': 'Forbidden - Acceso No Autorizado'}),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': cors_headers
         }
-    
     # Si el token es válido, continuar con la creación del diagrama
     if not body.get("dsl") or not user_id:
         return {
             'statusCode': 400,
             'body': json.dumps({'error': 'Falta dsl o user_id'}),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': cors_headers
         }
 
     try:
         # Verificar si /tmp existe y es escribible
         if not os.path.exists('/tmp'):
             os.makedirs('/tmp')  # Crear directorio si no existe
-
         if not os.access('/tmp', os.W_OK):
             return {
                 'statusCode': 500,
                 'body': json.dumps({'error': 'El directorio /tmp no es escribible'}),
-                'headers': {'Content-Type': 'application/json'}
+                'headers': cors_headers
             }
 
         # Preprocesar el DSL: Limpiar caracteres de escape y saltos de línea
@@ -74,7 +79,7 @@ def lambda_handler(event, context):
                 return {
                     'statusCode': 500,
                     'body': json.dumps({'error': f"No se pudo generar el diagrama ER a partir del SQL proporcionado."}),
-                    'headers': {'Content-Type': 'application/json'}
+                    'headers': cors_headers
                 }
             # Subir a S3
             s3 = boto3.client("s3")
@@ -91,12 +96,7 @@ def lambda_handler(event, context):
             image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
             return {
                 'statusCode': 200,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-                },
+                'headers': cors_headers,
                 'body': json.dumps({'imageUrl': image_url})
             }
 
@@ -130,7 +130,7 @@ def lambda_handler(event, context):
                 return {
                     'statusCode': 500,
                     'body': json.dumps({'error': f"Error durante el renderizado: {str(e)}"}),
-                    'headers': {'Content-Type': 'application/json'}
+                    'headers': cors_headers
                 }
         else:
             # Si no es SQL ni URL, asumir archivo DBML/DSL
@@ -146,7 +146,7 @@ def lambda_handler(event, context):
                 return {
                     'statusCode': 500,
                     'body': json.dumps({'error': f"Error durante el renderizado: {str(e)}"}),
-                    'headers': {'Content-Type': 'application/json'}
+                    'headers': cors_headers
                 }
 
         # Verificar si la imagen se generó correctamente
@@ -154,7 +154,7 @@ def lambda_handler(event, context):
             return {
                 'statusCode': 500,
                 'body': json.dumps({'error': f"El archivo de imagen no se generó correctamente: {output_path}"}),
-                'headers': {'Content-Type': 'application/json'}
+                'headers': cors_headers
             }
 
         # Subir a S3
@@ -170,12 +170,7 @@ def lambda_handler(event, context):
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
         return {
             'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS'
-            },
+            'headers': cors_headers,
             'body': json.dumps({'imageUrl': image_url})
         }
 
@@ -185,7 +180,7 @@ def lambda_handler(event, context):
         return {
             'statusCode': 500,
             'body': json.dumps({'error': f'Ocurrió un error: {str(e)}'}),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': cors_headers
         }
 
 def crear_sqlite_y_diagrama_desde_sql(dsl_cleaned, output_path, user_id):
