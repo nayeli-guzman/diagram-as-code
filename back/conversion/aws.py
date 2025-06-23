@@ -98,7 +98,10 @@ def lambda_handler(event, context):
             'statusCode': 200,
             'body': json.dumps({'imageUrl': image_url}),
             'headers': {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': 'http://localhost:5173',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',   
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization', 
             }
         }
     

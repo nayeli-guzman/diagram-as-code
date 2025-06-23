@@ -88,7 +88,7 @@ export const authAPI = {
     }
     return {
       user: {
-        id: credentials.user_id,
+        id: credentials.tenant_id,
         email: credentials.user_id,
         name: credentials.user_id.split("@")[0] || credentials.user_id,
       },
@@ -147,7 +147,7 @@ export const authAPI = {
     // Adaptar el formato de respuesta del backend
     return {
       user: {
-        id: userData.user_id,
+        id: userData.tenant_id,
         email: userData.user_id, // Usar user_id como email para mantener compatibilidad
         name: userData.user_id.split("@")[0] || userData.user_id, // Usar parte del user_id como nombre
       },
@@ -168,7 +168,7 @@ export const authAPI = {
 
     return {
       user: {
-        id: "user-id",
+        id: userName,
         email: userEmail,
         name: userName,
       },

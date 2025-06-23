@@ -1,5 +1,9 @@
 {
   "dependencies": {
     "serverless-python-requirements": "^6.1.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6"
   }
 }

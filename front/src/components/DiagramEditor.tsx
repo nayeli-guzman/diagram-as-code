@@ -34,6 +34,11 @@ const DiagramEditor: React.FC = () => {
   const imageRef = useRef<HTMLImageElement>(null);
   const { user, logout } = useAuth();
 
+  const user_id = localStorage.getItem("userEmail");
+  const tenant_id = localStorage.getItem("userName");
+  const token = localStorage.getItem('authToken');  
+
+
   const diagramTypes: {
     value: DiagramType;
     label: string;
@@ -165,6 +170,33 @@ with Diagram("Generic Diagram", show=False):
     }
 
     setIsGenerating(true);
+        setIsExporting(true);
+    console.log("Enviando datos al backend...");
+    console.log({ user_id, tenant_id, code });
+    try {
+      const response = await fetch('https://dlfz6n75y3.execute-api.us-east-1.amazonaws.com/dev/conversion/aws', {
+        method: 'POST',
+        headers: {
+          
+            ...(token ? { 'Authorization': token } : {})
+          },
+        body: JSON.stringify({
+          user_id: user_id,         // ID del usuario
+          tenant_id: tenant_id,     // ID del tenant
+          code: code           // Código del diagrama que el usuario escribió
+        })
+      });
+
+      console.log("Respuesta del backend:");
+      console.log(response); 
+      if (response.ok) {
+        toast.success("Datos enviados correctamente al backend.");
+      } else {
+        toast.error("Hubo un problema al enviar los datos.");
+      }
+    } catch (error) {
+      toast.error("Error al hacer la solicitud al backend.");
+    }
     try {
       const result = await diagramsAPI.generate(code, diagramType);
       setGeneratedImageUrl(result.imageUrl);
@@ -229,7 +261,9 @@ with Diagram("Generic Diagram", show=False):
   const handleExportPNG = async () => {
     if (!imageRef.current) return;
 
-    setIsExporting(true);
+
+
+
     try {
       const canvas = await html2canvas(imageRef.current, {
         backgroundColor: "#ffffff",
