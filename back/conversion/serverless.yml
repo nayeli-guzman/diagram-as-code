@@ -21,5 +21,21 @@ functions:
       - http:
           path: /conversion/aws
           method: post
-          cors: true
+          cors:
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - Authorization
           integration: lambda-proxy
+      - http:
+          path: /conversion/aws
+          method: options
+          cors:
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - Authorization
+          integration: mock
+
