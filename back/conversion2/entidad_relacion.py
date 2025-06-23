@@ -104,15 +104,27 @@ def lambda_handler(event, context):
 
         # Renderizar como imagen PNG
         print(f"Generando diagrama ER en {output_path}")
-        
         # Comprobar si el DSL parece ser una URL SQLAlchemy (mysql://, sqlite://, etc.)
         is_sqlalchemy_url = False
-        # Revisamos si el DSL tiene el formato de una URL SQLAlchemy
         if body["dsl"].strip().startswith(("sqlite://", "postgresql://", "mysql://", "oracle://", "mssql://")):
             is_sqlalchemy_url = True
-        
         if is_sqlalchemy_url:
             print("Detectado SQLAlchemy URL, pasando directamente a renderización.")
+            # Si es SQLite y el archivo no existe, crearlo con una tabla de ejemplo
+            if body["dsl"].strip().startswith("sqlite://"):
+                import sqlite3
+                import re
+                # Extraer ruta del archivo SQLite
+                match = re.match(r"sqlite:///(.*)", body["dsl"].strip())
+                if match:
+                    db_path = match.group(1)
+                    if not os.path.exists(db_path):
+                        print(f"No existe {db_path}, creando base de datos de ejemplo...")
+                        conn = sqlite3.connect(db_path)
+                        cursor = conn.cursor()
+                        cursor.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name VARCHAR)''')
+                        conn.commit()
+                        conn.close()
             try:
                 render_er(body["dsl"], output_path)  # Pasar URL directamente
             except Exception as e:
