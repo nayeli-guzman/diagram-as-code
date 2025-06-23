@@ -64,37 +64,30 @@ def generate_random():
     }
 
 def upload_to_s3(filepath, user_id, bucket_name):
-
     try:
         s3_client = boto3.client('s3')        
         hash = str(uuid.uuid4())
         s3_key = f'diagrama-json-{user_id}-{hash}.png'
-    
-        # s3_client.upload_file(
-        #     Filename=filepath, 
-        #     Bucket=bucket_name,                     
-        #     Key=s3_key,                          
-        #     ExtraArgs={'ACL': 'public-read'}             
-        # )
-
         mime_type = 'image/png' 
-
         s3_client.put_object(
-            Body=open(filepath, 'rb'),  # Abre el archivo en modo binario
+            Body=open(filepath, 'rb'),
             Bucket=bucket_name,
             Key=s3_key,
             ContentType=mime_type,
             ACL='public-read'  
         ) 
-            
         s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
-        
         return s3_url
-        
     except Exception as e:
         return {
-            'success': False,
-            'error': f"Error subiendo a S3: {str(e)}"
+            'statusCode': 500,
+            'body': json.dumps({'error': f"Error subiendo a S3: {str(e)}"}),
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            }
         }
 
 def lambda_handler(event, context):
@@ -119,13 +112,19 @@ def lambda_handler(event, context):
     print(response)
     if response['statusCode'] == 403:
         return {
-            'statusCode' : 403,
-            'status' : 'Forbidden - Acceso No Autorizado'
+            'statusCode': 403,
+            'body': json.dumps({'status': 'Forbidden - Acceso No Autorizado'}),
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            }
         }
     
     # generando el diagrama
 
-    code = json.loads(body['code']) if 'code 'in body else generate_random()
+    code = json.loads(body['code']) if 'code' in body else generate_random()
     title = body['title'] if 'title' in body else "Diagrama JSON"
     filepath = "/tmp/diagrama"
 
@@ -135,23 +134,29 @@ def lambda_handler(event, context):
         graph = json_to_graph(code)
         graph.attr(label=title, fontsize='18', fontweight='bold')
         graph.render(filepath, format='png', cleanup=True)
-            
     except Exception as e:
-        raise Exception(f"Error generando diagrama: {str(e)}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': f"Error generando diagrama: {str(e)}"}),
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            }
+        }
 
-    
-    s3_response = {}
-    
     s3_response = upload_to_s3(f"{filepath}.png", user_id, bucket_name)
-    
+    image_url = s3_response if isinstance(s3_response, str) else s3_response.get('imageUrl', '')
+
     return {
         'statusCode': 200,
+        'body': json.dumps({'imageUrl': image_url}),
         'headers': {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'Content-Type',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS'
-        },
-        'body': json.dumps({'imageUrl': s3_response})
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        }
     }
-    
+

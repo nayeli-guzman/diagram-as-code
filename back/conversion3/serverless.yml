@@ -21,5 +21,20 @@ functions:
       - http:
           path: /generate-diagram
           method: post
-          cors: true
+          cors:
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - Authorization
           integration: lambda-proxy
+      - http:
+          path: /generate-diagram
+          method: options
+          cors:
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - Authorization
+          integration: mock
