@@ -173,30 +173,33 @@ with Diagram("Generic Diagram", show=False):
     setIsGenerating(true);
         setIsExporting(true);
     console.log("Enviando datos al backend...");
-    console.log({ user_id, tenant_id, code });
+    console.log({ user_id, tenant_id, code, token });
     try {
       const response = await fetch('https://dlfz6n75y3.execute-api.us-east-1.amazonaws.com/dev/conversion/aws', {
         method: 'POST',
         headers: {
-          
             ...(token ? { 'Authorization': token } : {})
           },
         body: JSON.stringify({
           user_id: user_id,         // ID del usuario
-          tenant_id: tenant_id,     // ID del tenant
+          tenant_id: "UTEC",     // ID del tenant
           code: code           // Código del diagrama que el usuario escribió
         })
       });
 
+      const data = await response.json();
+
       console.log("Respuesta del backend:");
+      console.log(response.body); 
       console.log(response); 
+      console.log(data);
       if (response.ok) {
         toast.success("Datos enviados correctamente al backend.");
       } else {
         toast.error("Hubo un problema al enviar los datos.");
       }
 
-      setGeneratedImageUrl("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFUAfyVe3Easiycyh3isP9wDQTYuSmGPsPQvLIJdEYvQ_DsFq5Ez2Nh_QjiS3oZ3B8ZPfK9cZQyIStmQMV1lDPLw");
+      setGeneratedImageUrl(data.imageUrl);
       console.log("URL de la imagen generada:", response.url);
       toast.success("¡Diagrama generado correctamente!");
 
