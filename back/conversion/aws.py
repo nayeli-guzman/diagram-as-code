@@ -84,13 +84,21 @@ def lambda_handler(event, context):
         hash = str(uuid.uuid4())
 
         s3_key = f'diagrama-aws-{user_id}-{hash}.png'
-        s3_client.upload_file(
-            Filename=tmpfile_path, 
-            Bucket=bucket_name, 
+        # s3_client.upload_file(
+        #     Filename=tmpfile_path, 
+        #     Bucket=bucket_name, 
+        #     Key=s3_key,
+        #     ExtraArgs={'ACL': 'public-read'}
+        # )
+        mime_type = 'image/png' 
+
+        s3_client.put_object(
+            Body=open(tmpfile_path, 'rb'),  # Abre el archivo en modo binario
+            Bucket=bucket_name,
             Key=s3_key,
-            ExtraArgs={'ACL': 'public-read'}
-        )
-            
+            ContentType=mime_type,
+            ACL='public-read'  
+        ) 
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
         print(f"Image URL: {image_url}")
 
