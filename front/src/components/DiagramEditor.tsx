@@ -31,7 +31,7 @@ const DiagramEditor: React.FC = () => {
   const [githubUrl, setGithubUrl] = useState("");
   const [zoom, setZoom] = useState(100);
   const [isExporting, setIsExporting] = useState(false);
-    const imageRef = useRef<HTMLImageElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const { user, logout } = useAuth();
 
   const user_id = localStorage.getItem("userEmail");
@@ -229,7 +229,24 @@ with Diagram("Generic Diagram", show=False):
   const handleExportPNG = async () => {
     if (!imageRef.current) return;
 
+    if (!generatedImageUrl) {
+      toast.error("No hay imagen generada para descargar")
+      return
+    }
 
+    setIsExporting(true)
+    try {
+      const res = await fetch(generatedImageUrl, { mode: 'cors' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
+      saveAs(blob, `diagram-${diagramType}-${Date.now()}.png`)
+      toast.success('Descarga completada')
+    } catch (err) {
+      console.error(err)
+      toast.error('Error al descargar desde S3')
+    } finally {
+      setIsExporting(false)
+    }
 
 
     try {
@@ -442,16 +459,16 @@ with Diagram("Generic Diagram", show=False):
                       className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ImageIcon size={16} />
-                      <span>{isExporting ? "Exportando..." : "SVG"}</span>
+                      <span>{isExporting ? "Exportar" : "SVG"}</span>
                     </button>
 
                     <button
                       onClick={handleExportPNG}
-                      disabled={isExporting}
+                      //disabled={isExporting}
                       className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <FileImage size={16} />
-                      <span>{isExporting ? "Exportando..." : "PNG"}</span>
+                      <span>{isExporting ? "Exportar" : "PNG"}</span>
                     </button>
 
                     <button
@@ -460,7 +477,7 @@ with Diagram("Generic Diagram", show=False):
                       className="flex items-center space-x-2 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <FilePdf size={16} />
-                      <span>{isExporting ? "Exportando..." : "PDF"}</span>
+                      <span>{isExporting ? "Exportar" : "PDF"}</span>
                     </button>
                   </>
                 )}
