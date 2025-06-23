@@ -16,14 +16,12 @@ import os
 import re
 import uuid
 
-
 user_validar = f"diagram-usuarios-dev-validar"
 bucket_name = "cad-diagrams"
 
 def lambda_handler(event, context):
     
     print(event)
-    # Entrada (json)
     body =  json.loads(event['body'])
     
     # Inicio - Proteger el Lambda
