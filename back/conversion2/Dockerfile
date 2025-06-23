@@ -10,7 +10,7 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # Copia tu código de la función
-COPY entidad_relacion ./
+COPY entidad_relacion.py ./
 
 # Define el handler de Lambda
 CMD [ "entidad_relacion.lambda_handler" ]
