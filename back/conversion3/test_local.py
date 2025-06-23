@@ -1,63 +1,67 @@
-#!/usr/bin/env python3
-"""
-Script para probar el handler de Lambda localmente
-"""
-
 import json
 import base64
-from lambda_handler import lambda_handler
+import io
+import tempfile
+import os
+from datetime import datetime
+import uuid
+from graphviz import Digraph
 
-def test_local():
-    """Prueba el handler localmente"""
+def json_to_graph(data, graph=None, parent=None, level=0):
+    if graph is None:
+        graph = Digraph(comment='Estructura JSON')
+        graph.attr(rankdir='TB')
+        graph.attr('node', shape='rectangle', style='rounded,filled')
+        graph.attr('edge', color='#666666')
     
-    # Simular un evento de API Gateway
-    event = {
-        'body': json.dumps({
-            'title': 'Mi Tienda Online',
-            'bucket': 'mi-bucket-diagramas',  # Nuevo: especificar bucket S3
-            'data': {
-                "Mi_Empresa": {
-                    "Ventas": {
-                        "Online": {"web": {}, "app": {}},
-                        "Fisica": {"tienda1": {}, "tienda2": {}}
-                    },
-                    "Inventario": {
-                        "Productos": {"categoria_a": {}, "categoria_b": {}},
-                        "Almacenes": {"principal": {}, "secundario": {}}
-                    }
-                }
+    colors = ['lightblue', 'lightgreen', 'lightyellow', 'lightcoral', 'lightpink', 'lightgray']
+    color = colors[min(level, len(colors)-1)]
+    
+    for key, value in data.items():
+        node_id = f"{parent}_{key}" if parent else key
+
+        if level == 0:
+            graph.node(node_id, f"🏢 {key}", fillcolor=color, fontsize='16', fontweight='bold')
+        elif level == 1:
+            graph.node(node_id, f"📁 {key}", fillcolor=color, fontsize='14', fontweight='bold')
+        elif level == 2:
+            graph.node(node_id, f"📂 {key}", fillcolor=color, fontsize='12')
+        else:
+            graph.node(node_id, f"📄 {key}", fillcolor=color, fontsize='10')
+        
+        if parent:
+            graph.edge(parent, node_id)
+        
+        if isinstance(value, dict) and value:
+            json_to_graph(value, graph, node_id, level + 1)
+        elif isinstance(value, dict) and not value:
+            empty_id = f"{node_id}_empty"
+            graph.node(empty_id, "📋 (vacío)", shape='ellipse', fillcolor='white', fontsize='8')
+            graph.edge(node_id, empty_id, style='dashed', color='lightgray')
+    
+    return graph
+
+def generate_random():
+    return {
+        "Tienda_Online": {
+            "Usuarios": {
+                "Clientes": {"perfil": {}, "historial": {}},
+                "Admins": {"panel": {}}
+            },
+            "Productos": {
+                "Categorias": {"electronica": {}, "ropa": {}},
+                "Stock": {"disponible": {}, "agotado": {}}
+            },
+            "Pedidos": {
+                "Estado": {"pendiente": {}, "enviado": {}},
+                "Pago": {"tarjeta": {}, "efectivo": {}}
             }
-        })
+        }
     }
-    
-    context = {}
-    
-    # Ejecutar el handler
-    response = lambda_handler(event, context)
-    
-    print(f"Status Code: {response['statusCode']}")
-    
-    if response['statusCode'] == 200:
-        body = json.loads(response['body'])
-        print("✅ Diagrama generado exitosamente")
-        
-        # Guardar la imagen localmente para verificar
-        image_data = base64.b64decode(body['image'])
-        with open('test_diagram.png', 'wb') as f:
-            f.write(image_data)
-        print("📊 Imagen guardada como: test_diagram.png")
-        
-        # Mostrar información de S3 si está disponible
-        if 's3' in body and body['s3']:
-            s3_info = body['s3']
-            if s3_info.get('success'):
-                print(f"☁️ Imagen subida a S3: {s3_info.get('url')}")
-                print(f"📁 Bucket: {s3_info.get('bucket')}")
-                print(f"🔑 Key: {s3_info.get('key')}")
-            else:
-                print(f"❌ Error en S3: {s3_info.get('error')}")
-    else:
-        print(f"❌ Error: {response['body']}")
 
-if __name__ == '__main__':
-    test_local()
+code = generate_random()
+filepath = "tmp/diagrama"
+graph = json_to_graph(code)
+graph.attr(label="a", fontsize='18', fontweight='bold')
+graph.render(filepath, format='png', cleanup=True)
+            

@@ -9,7 +9,7 @@ import uuid
 from graphviz import Digraph
 
 user_validar = f"diagram-usuarios-dev-validar"
-bucket_name = "cad-diagrams"
+bucket_name = "mi-bucket-diagrams"
 
 def json_to_graph(data, graph=None, parent=None, level=0):
     """Convierte estructura JSON a grafo de Graphviz"""
@@ -56,19 +56,6 @@ def json_to_graph(data, graph=None, parent=None, level=0):
     
     return graph
 
-def generate_diagram(data, title="Diagrama JSON"):    
-    try:
-        graph = json_to_graph(data)
-        graph.attr(label=title, fontsize='18', fontweight='bold')
-        with tempfile.TemporaryDirectory() as temp_dir:
-            filename = os.path.join(temp_dir, "diagram")
-            graph.render(filename, format='png', cleanup=True)
-            with open(f"{filename}.png", 'rb') as f:
-                image_bytes = f.read()
-            return image_bytes
-    except Exception as e:
-        raise Exception(f"Error generando diagrama: {str(e)}")
-
 def generate_random():
     return {
         "Tienda_Online": {
@@ -87,34 +74,25 @@ def generate_random():
         }
     }
 
-def upload_to_s3(image_bytes, bucket_name, title="diagram"):
-    """Sube la imagen a S3 y retorna la URL y key"""
-    
+def upload_to_s3(filepath, user_id, bucket_name):
+
     try:
-        # Crear cliente S3
-        s3_client = boto3.client('s3')
-        
-        # Generar nombre único para el archivo
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        unique_id = str(uuid.uuid4())[:8]
-        filename = f"diagrams/{title.replace(' ', '_')}_{timestamp}_{unique_id}.png"
-        
-        # Subir archivo a S3
-        s3_client.put_object(
-            Bucket=bucket_name,
-            Key=filename,
-            Body=image_bytes,
-            ContentType='image/png',
-            ACL='public-read'  # Hace el archivo público
+        s3_client = boto3.client('s3')        
+        hash = str(uuid.uuid4())
+        s3_key = f'diagrama-json-{user_id}-{hash}.png'
+    
+        s3_client.upload_file(
+            Filename=filepath, 
+            Bucket=bucket_name,                     
+            Key=s3_key,                          
+            ExtraArgs={'ACL': 'public-read'}             
         )
-        
-        # Generar URL pública
-        s3_url = f"https://{bucket_name}.s3.amazonaws.com/{filename}"
+            
+        s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
         
         return {
             'success': True,
             'url': s3_url,
-            'key': filename,
             'bucket': bucket_name
         }
         
@@ -155,18 +133,21 @@ def lambda_handler(event, context):
     code = body['code'] if 'code 'in body else generate_random()
     title = body['title'] if 'title' in body else "Diagrama JSON"
     
-    image_bytes = generate_diagram(code, title)
+    filepath = "tmp/diagrama"
+
+    try:
+        graph = json_to_graph(code)
+        graph.attr(label=title, fontsize='18', fontweight='bold')
+        graph.render(filepath, format='png', cleanup=True)
+            
+    except Exception as e:
+        raise Exception(f"Error generando diagrama: {str(e)}")
+
     
-    # Convertir a base64 para devolverlo en la respuesta HTTP
-    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-    
-    # Subir a S3 si se proporciona el nombre del bucket
     s3_response = {}
-    if 'bucket' in body:
-        bucket_name = body['bucket']
-        s3_response = upload_to_s3(image_bytes, bucket_name, title)
     
-    # Respuesta exitosa
+    s3_response = upload_to_s3(f"{filepath}.png", user_id, bucket_name, title)
+    
     return {
         'statusCode': 200,
         'headers': {
@@ -176,9 +157,7 @@ def lambda_handler(event, context):
             'Access-Control-Allow-Methods': 'POST, OPTIONS'
         },
         'body': json.dumps({
-            'success': True,
             'message': 'Diagrama generado exitosamente',
-            'image': image_base64,
             'contentType': 'image/png',
             's3': s3_response
         })
