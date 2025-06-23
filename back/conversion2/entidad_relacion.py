@@ -2,7 +2,7 @@ import boto3, json, os
 from eralchemy import render_er
 import tempfile
 
-bucket_name = "e-rbucket"
+bucket_name = "mi-bucket-diagrams"
 output_path = "/tmp/diagrama_er.png"
 
 # Nombre de la función Lambda de validación
