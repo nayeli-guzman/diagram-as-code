@@ -182,6 +182,43 @@ def lambda_handler(event, context):
             'headers': {'Content-Type': 'application/json'}
         }
 
+        sql_keywords = ["CREATE TABLE", "create table", "CREATE INDEX", "create index", "ALTER TABLE", "alter table"]
+        if any(dsl_cleaned.strip().startswith(kw) for kw in sql_keywords):
+            import sqlite3
+            import uuid
+            db_path = f"/tmp/{user_id.replace('@','_').replace('.','_')}_{uuid.uuid4().hex}.db"
+            print(f"Creando base de datos temporal en {db_path} y ejecutando SQL del usuario...")
+            try:
+                conn = sqlite3.connect(db_path)
+                cursor = conn.cursor()
+                cursor.executescript(dsl_cleaned)
+                conn.commit()
+                conn.close()
+                # Generar el diagrama
+                render_er(f"sqlite:///{db_path}", output_path)
+                if os.path.exists(output_path):
+                    print(f"¡Diagrama generado como {output_path}!")
+                else:
+                    print("No se generó el diagrama.")
+            except Exception as e:
+                print(f"Error ejecutando SQL: {str(e)}")
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'error': f"Error ejecutando SQL: {str(e)}"}),
+                    'headers': {'Content-Type': 'application/json'}
+                }
+            # Subir a S3
+            s3 = boto3.client("s3")
+            s3_key = f"er-diagrama-{user_id}.png"
+            print(f"Subiendo el archivo {output_path} a S3 con la clave {s3_key}")
+            s3.upload_file(output_path, bucket_name, s3_key)
+            image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
+            return {
+                'statusCode': 200,
+                'body': json.dumps({'imageUrl': image_url}),
+                'headers': {'Content-Type': 'application/json'}
+            }
+
 def generar_diagrama_sqlite_local():
     """
     Función utilitaria para pruebas locales: genera un diagrama ER a partir de una base de datos SQLite,
