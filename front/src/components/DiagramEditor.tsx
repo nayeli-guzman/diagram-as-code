@@ -160,6 +160,7 @@ with Diagram("Generic Diagram", show=False):
   };
 
   const handleGenerateDiagram = async () => {
+    
     if (!code.trim()) {
       toast.error("Por favor, ingresa la definición del diagrama");
       return;

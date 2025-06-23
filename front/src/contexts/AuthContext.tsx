@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Guardar información del usuario en localStorage
       localStorage.setItem("userEmail", user.email);
-      localStorage.setItem("userName", user.name);
+      localStorage.setItem("userName", user.id);
 
       dispatch({ type: "SET_USER", payload: { user, token } });
       toast.success("¡Sesión iniciada correctamente!");

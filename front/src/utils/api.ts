@@ -164,7 +164,7 @@ export const authAPI = {
 
     // Recuperar datos del usuario desde localStorage
     const userEmail = localStorage.getItem("userEmail") || "usuario@email.com";
-    const userName = localStorage.getItem("userName") || "Usuario";
+    const userName = localStorage.getItem("userName") || "UTEC";
 
     return {
       user: {
