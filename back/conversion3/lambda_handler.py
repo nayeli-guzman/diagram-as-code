@@ -56,27 +56,16 @@ def json_to_graph(data, graph=None, parent=None, level=0):
     
     return graph
 
-def generar_diagrama_json_lambda(data, title="Diagrama JSON"):
-    """Genera un diagrama JSON y devuelve los bytes de la imagen"""
-    
+def generate_diagram(data, title="Diagrama JSON"):    
     try:
-        # Crear el grafo
         graph = json_to_graph(data)
         graph.attr(label=title, fontsize='18', fontweight='bold')
-        
-        # Usar un directorio temporal
         with tempfile.TemporaryDirectory() as temp_dir:
             filename = os.path.join(temp_dir, "diagram")
-            
-            # Renderizar como PNG
             graph.render(filename, format='png', cleanup=True)
-            
-            # Leer el archivo PNG generado
             with open(f"{filename}.png", 'rb') as f:
                 image_bytes = f.read()
-            
             return image_bytes
-    
     except Exception as e:
         raise Exception(f"Error generando diagrama: {str(e)}")
 
@@ -138,7 +127,7 @@ def upload_to_s3(image_bytes, bucket_name, title="diagram"):
 def lambda_handler(event, context):
     
     print(event)
-    body =  json.loads(event['body'])
+    body = json.loads(event.get('body', '{}'))
     
     # Inicio - Proteger el Lambda
     token = event['headers']['Authorization']
@@ -160,63 +149,38 @@ def lambda_handler(event, context):
             'statusCode' : 403,
             'status' : 'Forbidden - Acceso No Autorizado'
         }
-    try:
-        if 'body' in event:
-            if isinstance(event['body'], str):
-                body = json.loads(event['body'])
-            else:
-                body = event['body']
-        else:
-            body = {}
-        
-        if 'data' in body:
-            json_data = body['data']
-        else:
-            json_data = generate_random()
-        
-        # Obtener título opcional
-        title = body.get('title', 'Estructura JSON')
-        
-        # Generar el diagrama
-        image_bytes = generar_diagrama_json_lambda(json_data, title)
-        
-        # Convertir a base64 para devolverlo en la respuesta HTTP
-        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-        
-        # Subir a S3 si se proporciona el nombre del bucket
-        s3_response = {}
-        if 'bucket' in body:
-            bucket_name = body['bucket']
-            s3_response = upload_to_s3(image_bytes, bucket_name, title)
-        
-        # Respuesta exitosa
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS'
-            },
-            'body': json.dumps({
-                'success': True,
-                'message': 'Diagrama generado exitosamente',
-                'image': image_base64,
-                'contentType': 'image/png',
-                's3': s3_response
-            })
-        }
     
-    except Exception as e:
-        # Respuesta de error
-        return {
-            'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({
-                'success': False,
-                'error': str(e)
-            })
-        }
+    # generando el diagrama
+
+    code = body['code'] if 'code 'in body else generate_random()
+    title = body['title'] if 'title' in body else "Diagrama JSON"
+    
+    image_bytes = generate_diagram(code, title)
+    
+    # Convertir a base64 para devolverlo en la respuesta HTTP
+    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+    
+    # Subir a S3 si se proporciona el nombre del bucket
+    s3_response = {}
+    if 'bucket' in body:
+        bucket_name = body['bucket']
+        s3_response = upload_to_s3(image_bytes, bucket_name, title)
+    
+    # Respuesta exitosa
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS'
+        },
+        'body': json.dumps({
+            'success': True,
+            'message': 'Diagrama generado exitosamente',
+            'image': image_base64,
+            'contentType': 'image/png',
+            's3': s3_response
+        })
+    }
+    
