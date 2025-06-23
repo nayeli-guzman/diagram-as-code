@@ -164,3 +164,64 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': f'Ocurrió un error: {str(e)}'}),
             'headers': {'Content-Type': 'application/json'}
         }
+
+def generar_diagrama_sqlite_local():
+    """
+    Función utilitaria para pruebas locales: genera un diagrama ER a partir de una base de datos SQLite,
+    igual que el test.py.
+    """
+    import sqlite3
+    db_path = 'test.db'
+    # Crea una base de datos SQLite de ejemplo con varias tablas y relaciones
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        name VARCHAR,
+        email VARCHAR
+    )''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS posts (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER,
+        title VARCHAR,
+        content TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY,
+        post_id INTEGER,
+        user_id INTEGER,
+        comment TEXT,
+        FOREIGN KEY(post_id) REFERENCES posts(id),
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )''')
+    conn.commit()
+    conn.close()
+    # Genera el diagrama
+    output_path = 'diagrama_er.png'
+    render_er(f'sqlite:///{db_path}', output_path)
+    if os.path.exists(output_path):
+        print(f"¡Diagrama generado como {output_path}!")
+    else:
+        print("No se generó el diagrama.")
+
+def generar_diagrama_desde_sqlite_url(sqlite_url, output_path='diagrama_er.png'):
+    """
+    Genera un diagrama ER a partir de una URL de base de datos SQLite (por ejemplo, 'sqlite:///test.db').
+    """
+    from eralchemy import render_er
+    import os
+    render_er(sqlite_url, output_path)
+    if os.path.exists(output_path):
+        print(f"¡Diagrama generado como {output_path}!")
+    else:
+        print("No se generó el diagrama.")
+
+if __name__ == "__main__":
+    print("Modo interactivo: Ingresa la ruta de tu base de datos SQLite (por ejemplo, test.db):")
+    db_path = input("Ruta de la base de datos SQLite: ").strip()
+    if not db_path:
+        print("No se ingresó una ruta de base de datos.")
+    else:
+        sqlite_url = f"sqlite:///{db_path}"
+        generar_diagrama_desde_sqlite_url(sqlite_url)

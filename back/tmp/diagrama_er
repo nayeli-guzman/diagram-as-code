@@ -1,0 +1,10 @@
+digraph "ER Diagram" {
+	graph [fontcolor="#2D3436" fontname="Sans-Serif" fontsize=15 label="ER Diagram" nodesep=0.60 pad=2.0 rankdir=LR ranksep=0.75 splines=ortho]
+	node [fixedsize=true fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 height=1.4 imagescale=true labelloc=b shape=box style=rounded width=1.4]
+	edge [color="#7B8894"]
+	"6a8405972c95420082eaa2aa43c51fa2" [label=User]
+	"597fd03d442349b791f91a0107a8abca" [label=Post]
+	a45b848179ab472aae8aece8fad72b37 [label=Comment]
+	"6a8405972c95420082eaa2aa43c51fa2" -> "597fd03d442349b791f91a0107a8abca" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"597fd03d442349b791f91a0107a8abca" -> a45b848179ab472aae8aece8fad72b37 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+}
