@@ -17,7 +17,7 @@ import re
 import uuid
 
 user_validar = f"diagram-usuarios-dev-validar"
-bucket_name = "cad-diagrams"
+bucket_name = "cad-diagrams-2"
 
 def lambda_handler(event, context):
     
