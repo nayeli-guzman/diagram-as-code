@@ -1,7 +1,7 @@
 {
-  "/home/ubuntu/diagram-as-code/back/conversion/serverless.yml": {
+  "/Users/nayeli/Desktop/utec/2025-1/cloud-computing/diagram-as-code/back/conversion/serverless.yml": {
     "versionFramework": "4.17.1",
-    "servicePath": "/home/ubuntu/diagram-as-code/back/conversion/serverless.yml",
+    "servicePath": "/Users/nayeli/Desktop/utec/2025-1/cloud-computing/diagram-as-code/back/conversion/serverless.yml",
     "serviceConfigFileName": "serverless.yml",
     "service": {
       "org": "adrianurbinamendoza",
@@ -37,7 +37,7 @@
               "Type": "AWS::Lambda::Function",
               "Properties": {
                 "Code": {
-                  "ImageUri": "254780740814.dkr.ecr.us-east-1.amazonaws.com/serverless-conversion-dev@sha256:48106c86b84e5836423ae8e4e9ce1fc0b302c70b1de46db6bc994813511c209b"
+                  "ImageUri": "254780740814.dkr.ecr.us-east-1.amazonaws.com/serverless-conversion-dev@sha256:ed80050ffe69f8f3a45e7081411a0060a2f95966ea5942568531976ae6577b4d"
                 },
                 "PackageType": "Image",
                 "FunctionName": "conversion-dev-conversion-aws",
@@ -49,14 +49,14 @@
                 "ConversionDashawsLogGroup"
               ]
             },
-            "ConversionDashawsLambdaVersiondvMrSuazvLSNTrr3LqaDA7py0ewIk4lcXk1vl1lsifs": {
+            "ConversionDashawsLambdaVersionAP3IjKsxgRLqYpKDQDkwY916qfgWdzunwRXF8pCJQA": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "ConversionDashawsLambdaFunction"
                 },
-                "CodeSha256": "48106c86b84e5836423ae8e4e9ce1fc0b302c70b1de46db6bc994813511c209b"
+                "CodeSha256": "ed80050ffe69f8f3a45e7081411a0060a2f95966ea5942568531976ae6577b4d"
               }
             },
             "ApiGatewayRestApi": {
@@ -189,7 +189,7 @@
                 "ConversionDashawsLambdaPermissionApiGateway"
               ]
             },
-            "ApiGatewayDeployment1750640254317": {
+            "ApiGatewayDeployment1750645117861": {
               "Type": "AWS::ApiGateway::Deployment",
               "Properties": {
                 "RestApiId": {
@@ -250,7 +250,7 @@
             "ConversionDashawsLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "ConversionDashawsLambdaVersiondvMrSuazvLSNTrr3LqaDA7py0ewIk4lcXk1vl1lsifs"
+                "Ref": "ConversionDashawsLambdaVersionAP3IjKsxgRLqYpKDQDkwY916qfgWdzunwRXF8pCJQA"
               },
               "Export": {
                 "Name": "sls-conversion-dev-ConversionDashawsLambdaFunctionQualifiedArn"
@@ -322,7 +322,7 @@
           "memory": 1024,
           "timeout": 30,
           "vpc": {},
-          "versionLogicalId": "ConversionDashawsLambdaVersiondvMrSuazvLSNTrr3LqaDA7py0ewIk4lcXk1vl1lsifs"
+          "versionLogicalId": "ConversionDashawsLambdaVersionAP3IjKsxgRLqYpKDQDkwY916qfgWdzunwRXF8pCJQA"
         }
       }
     },
@@ -357,7 +357,7 @@
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
-                "ImageUri": "254780740814.dkr.ecr.us-east-1.amazonaws.com/serverless-conversion-dev@sha256:48106c86b84e5836423ae8e4e9ce1fc0b302c70b1de46db6bc994813511c209b"
+                "ImageUri": "254780740814.dkr.ecr.us-east-1.amazonaws.com/serverless-conversion-dev@sha256:ed80050ffe69f8f3a45e7081411a0060a2f95966ea5942568531976ae6577b4d"
               },
               "PackageType": "Image",
               "FunctionName": "conversion-dev-conversion-aws",
@@ -369,14 +369,14 @@
               "ConversionDashawsLogGroup"
             ]
           },
-          "ConversionDashawsLambdaVersiondvMrSuazvLSNTrr3LqaDA7py0ewIk4lcXk1vl1lsifs": {
+          "ConversionDashawsLambdaVersionAP3IjKsxgRLqYpKDQDkwY916qfgWdzunwRXF8pCJQA": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ConversionDashawsLambdaFunction"
               },
-              "CodeSha256": "48106c86b84e5836423ae8e4e9ce1fc0b302c70b1de46db6bc994813511c209b"
+              "CodeSha256": "ed80050ffe69f8f3a45e7081411a0060a2f95966ea5942568531976ae6577b4d"
             }
           },
           "ApiGatewayRestApi": {
@@ -509,7 +509,7 @@
               "ConversionDashawsLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1750640254317": {
+          "ApiGatewayDeployment1750645117861": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -570,7 +570,7 @@
           "ConversionDashawsLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ConversionDashawsLambdaVersiondvMrSuazvLSNTrr3LqaDA7py0ewIk4lcXk1vl1lsifs"
+              "Ref": "ConversionDashawsLambdaVersionAP3IjKsxgRLqYpKDQDkwY916qfgWdzunwRXF8pCJQA"
             },
             "Export": {
               "Name": "sls-conversion-dev-ConversionDashawsLambdaFunctionQualifiedArn"
@@ -615,6 +615,11 @@
       "serviceProvider": null,
       "instanceParameters": null
     },
+    "error": {
+      "message": "An error occurred: ConversionDashawsLambdaFunction - Resource handler returned message: \"The image manifest, config or layer media type for the source image 254780740814.dkr.ecr.us-east-1.amazonaws.com/serverless-conversion-dev@sha256:ed80050ffe69f8f3a45e7081411a0060a2f95966ea5942568531976ae6577b4d is not supported. (Service: Lambda, Status Code: 400, Request ID: 0ae31e83-9be3-4690-b204-381550879550) (SDK Attempt Count: 1)\" (RequestToken: fdc8d533-c06c-bb38-b225-9b14e0553afd, HandlerErrorCode: InvalidRequest).",
+      "stack": "ServerlessError2: An error occurred: ConversionDashawsLambdaFunction - Resource handler returned message: \"The image manifest, config or layer media type for the source image 254780740814.dkr.ecr.us-east-1.amazonaws.com/serverless-conversion-dev@sha256:ed80050ffe69f8f3a45e7081411a0060a2f95966ea5942568531976ae6577b4d is not supported. (Service: Lambda, Status Code: 400, Request ID: 0ae31e83-9be3-4690-b204-381550879550) (SDK Attempt Count: 1)\" (RequestToken: fdc8d533-c06c-bb38-b225-9b14e0553afd, HandlerErrorCode: InvalidRequest).\n    at file:///Users/nayeli/.serverless/releases/4.17.1/package/dist/sf-core.js:1175:828\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async AwsDeploy.createFallback (file:///Users/nayeli/.serverless/releases/4.17.1/package/dist/sf-core.js:1175:23484)\n    at async aws:deploy:deploy:updateStack (file:///Users/nayeli/.serverless/releases/4.17.1/package/dist/sf-core.js:1186:7908)\n    at async PluginManager.runHooks (file:///Users/nayeli/.serverless/releases/4.17.1/package/dist/sf-core.js:1377:9870)\n    at async PluginManager.invoke (file:///Users/nayeli/.serverless/releases/4.17.1/package/dist/sf-core.js:1377:10639)\n    at async PluginManager.spawn (file:///Users/nayeli/.serverless/releases/4.17.1/package/dist/sf-core.js:1377:11000)\n    at async PluginManager.runHooks (file:///Users/nayeli/.serverless/releases/4.17.1/package/dist/sf-core.js:1377:9870)\n    at async PluginManager.invoke (file:///Users/nayeli/.serverless/releases/4.17.1/package/dist/sf-core.js:1377:10639)\n    at async PluginManager.run (file:///Users/nayeli/.serverless/releases/4.17.1/package/dist/sf-core.js:1377:11373)",
+      "code": "AWS_CLOUD_FORMATION_CREATE_STACK_INTERNAL_LAMBDA_FUNCTION_CREATE_FAILED"
+    },
     "serviceRawFile": "org: adrianurbinamendoza\nservice: conversion\n\nprovider:\n  name: aws\n  runtime: python3.13\n  timeout: 30\n  region: us-east-1\n  iam:\n    role: arn:aws:iam::254780740814:role/LabRole\n  ecr:\n    images:\n      aws:\n        path: .  \n\nfunctions:\n  conversion-aws:\n    image:\n      name: aws\n    events:\n      - http:\n          path: /conversion/aws\n          method: post\n          cors: true\n          integration: lambda-proxy\n",
     "command": [
       "deploy"
@@ -625,290 +630,10 @@
     "userId": "pBrmxyLH1zXZFXlpHw",
     "userName": "adrianurbinamendoza",
     "serviceProviderAwsAccountId": "254780740814",
-    "serviceProviderAwsCfStackName": "conversion-dev",
-    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-1:254780740814:stack/conversion-dev/49151d70-4fb9-11f0-b2f6-0affdfae5acd",
-    "serviceProviderAwsCfStackCreated": "2025-06-22T22:36:06.343Z",
-    "serviceProviderAwsCfStackUpdated": "2025-06-23T00:17:40.674Z",
-    "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
-    "serviceProviderAwsCfStackOutputs": [
-      {
-        "OutputKey": "ConversionDashawsLambdaFunctionQualifiedArn",
-        "OutputValue": "arn:aws:lambda:us-east-1:254780740814:function:conversion-dev-conversion-aws:59",
-        "Description": "Current Lambda function version",
-        "ExportName": "sls-conversion-dev-ConversionDashawsLambdaFunctionQualifiedArn"
-      },
-      {
-        "OutputKey": "ServiceEndpoint",
-        "OutputValue": "https://oy6p5n8649.execute-api.us-east-1.amazonaws.com/dev",
-        "Description": "URL of the service endpoint",
-        "ExportName": "sls-conversion-dev-ServiceEndpoint"
-      },
-      {
-        "OutputKey": "ServerlessDeploymentBucketName",
-        "OutputValue": "serverless-framework-deployments-us-east-1-b0f2789c-f672",
-        "ExportName": "sls-conversion-dev-ServerlessDeploymentBucketName"
-      }
-    ],
-    "compiledCloudFormationTemplate": {
-      "AWSTemplateFormatVersion": "2010-09-09",
-      "Description": "The AWS CloudFormation template for this Serverless application",
-      "Resources": {
-        "ConversionDashawsLogGroup": {
-          "Type": "AWS::Logs::LogGroup",
-          "Properties": {
-            "LogGroupName": "/aws/lambda/conversion-dev-conversion-aws"
-          }
-        },
-        "ConversionDashawsLambdaFunction": {
-          "Type": "AWS::Lambda::Function",
-          "Properties": {
-            "Code": {
-              "ImageUri": "254780740814.dkr.ecr.us-east-1.amazonaws.com/serverless-conversion-dev@sha256:48106c86b84e5836423ae8e4e9ce1fc0b302c70b1de46db6bc994813511c209b"
-            },
-            "PackageType": "Image",
-            "FunctionName": "conversion-dev-conversion-aws",
-            "MemorySize": 1024,
-            "Timeout": 30,
-            "Role": "arn:aws:iam::254780740814:role/LabRole"
-          },
-          "DependsOn": [
-            "ConversionDashawsLogGroup"
-          ]
-        },
-        "ConversionDashawsLambdaVersiondvMrSuazvLSNTrr3LqaDA7py0ewIk4lcXk1vl1lsifs": {
-          "Type": "AWS::Lambda::Version",
-          "DeletionPolicy": "Retain",
-          "Properties": {
-            "FunctionName": {
-              "Ref": "ConversionDashawsLambdaFunction"
-            },
-            "CodeSha256": "48106c86b84e5836423ae8e4e9ce1fc0b302c70b1de46db6bc994813511c209b"
-          }
-        },
-        "ApiGatewayRestApi": {
-          "Type": "AWS::ApiGateway::RestApi",
-          "Properties": {
-            "Name": "dev-conversion",
-            "EndpointConfiguration": {
-              "Types": [
-                "EDGE"
-              ]
-            },
-            "Policy": ""
-          }
-        },
-        "ApiGatewayResourceConversion": {
-          "Type": "AWS::ApiGateway::Resource",
-          "Properties": {
-            "ParentId": {
-              "Fn::GetAtt": [
-                "ApiGatewayRestApi",
-                "RootResourceId"
-              ]
-            },
-            "PathPart": "conversion",
-            "RestApiId": {
-              "Ref": "ApiGatewayRestApi"
-            }
-          }
-        },
-        "ApiGatewayResourceConversionAws": {
-          "Type": "AWS::ApiGateway::Resource",
-          "Properties": {
-            "ParentId": {
-              "Ref": "ApiGatewayResourceConversion"
-            },
-            "PathPart": "aws",
-            "RestApiId": {
-              "Ref": "ApiGatewayRestApi"
-            }
-          }
-        },
-        "ApiGatewayMethodConversionAwsOptions": {
-          "Type": "AWS::ApiGateway::Method",
-          "Properties": {
-            "AuthorizationType": "NONE",
-            "HttpMethod": "OPTIONS",
-            "MethodResponses": [
-              {
-                "StatusCode": "200",
-                "ResponseParameters": {
-                  "method.response.header.Access-Control-Allow-Origin": true,
-                  "method.response.header.Access-Control-Allow-Headers": true,
-                  "method.response.header.Access-Control-Allow-Methods": true
-                },
-                "ResponseModels": {}
-              }
-            ],
-            "RequestParameters": {},
-            "Integration": {
-              "Type": "MOCK",
-              "RequestTemplates": {
-                "application/json": "{statusCode:200}"
-              },
-              "ContentHandling": "CONVERT_TO_TEXT",
-              "IntegrationResponses": [
-                {
-                  "StatusCode": "200",
-                  "ResponseParameters": {
-                    "method.response.header.Access-Control-Allow-Origin": "'*'",
-                    "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
-                    "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
-                  },
-                  "ResponseTemplates": {
-                    "application/json": ""
-                  }
-                }
-              ]
-            },
-            "ResourceId": {
-              "Ref": "ApiGatewayResourceConversionAws"
-            },
-            "RestApiId": {
-              "Ref": "ApiGatewayRestApi"
-            }
-          }
-        },
-        "ApiGatewayMethodConversionAwsPost": {
-          "Type": "AWS::ApiGateway::Method",
-          "Properties": {
-            "HttpMethod": "POST",
-            "RequestParameters": {},
-            "ResourceId": {
-              "Ref": "ApiGatewayResourceConversionAws"
-            },
-            "RestApiId": {
-              "Ref": "ApiGatewayRestApi"
-            },
-            "ApiKeyRequired": "<REDACTED>",
-            "AuthorizationType": "NONE",
-            "Integration": {
-              "IntegrationHttpMethod": "POST",
-              "Type": "AWS_PROXY",
-              "Uri": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:",
-                    {
-                      "Ref": "AWS::Partition"
-                    },
-                    ":apigateway:",
-                    {
-                      "Ref": "AWS::Region"
-                    },
-                    ":lambda:path/2015-03-31/functions/",
-                    {
-                      "Fn::GetAtt": [
-                        "ConversionDashawsLambdaFunction",
-                        "Arn"
-                      ]
-                    },
-                    "/invocations"
-                  ]
-                ]
-              }
-            },
-            "MethodResponses": []
-          },
-          "DependsOn": [
-            "ConversionDashawsLambdaPermissionApiGateway"
-          ]
-        },
-        "ApiGatewayDeployment1750640254317": {
-          "Type": "AWS::ApiGateway::Deployment",
-          "Properties": {
-            "RestApiId": {
-              "Ref": "ApiGatewayRestApi"
-            },
-            "StageName": "dev"
-          },
-          "DependsOn": [
-            "ApiGatewayMethodConversionAwsOptions",
-            "ApiGatewayMethodConversionAwsPost"
-          ]
-        },
-        "ConversionDashawsLambdaPermissionApiGateway": {
-          "Type": "AWS::Lambda::Permission",
-          "Properties": {
-            "FunctionName": {
-              "Fn::GetAtt": [
-                "ConversionDashawsLambdaFunction",
-                "Arn"
-              ]
-            },
-            "Action": "lambda:InvokeFunction",
-            "Principal": "apigateway.amazonaws.com",
-            "SourceArn": {
-              "Fn::Join": [
-                "",
-                [
-                  "arn:",
-                  {
-                    "Ref": "AWS::Partition"
-                  },
-                  ":execute-api:",
-                  {
-                    "Ref": "AWS::Region"
-                  },
-                  ":",
-                  {
-                    "Ref": "AWS::AccountId"
-                  },
-                  ":",
-                  {
-                    "Ref": "ApiGatewayRestApi"
-                  },
-                  "/*/*"
-                ]
-              ]
-            }
-          }
-        }
-      },
-      "Outputs": {
-        "ServerlessDeploymentBucketName": {
-          "Value": "serverless-framework-deployments-us-east-1-b0f2789c-f672",
-          "Export": {
-            "Name": "sls-conversion-dev-ServerlessDeploymentBucketName"
-          }
-        },
-        "ConversionDashawsLambdaFunctionQualifiedArn": {
-          "Description": "Current Lambda function version",
-          "Value": {
-            "Ref": "ConversionDashawsLambdaVersiondvMrSuazvLSNTrr3LqaDA7py0ewIk4lcXk1vl1lsifs"
-          },
-          "Export": {
-            "Name": "sls-conversion-dev-ConversionDashawsLambdaFunctionQualifiedArn"
-          }
-        },
-        "ServiceEndpoint": {
-          "Description": "URL of the service endpoint",
-          "Value": {
-            "Fn::Join": [
-              "",
-              [
-                "https://",
-                {
-                  "Ref": "ApiGatewayRestApi"
-                },
-                ".execute-api.",
-                {
-                  "Ref": "AWS::Region"
-                },
-                ".",
-                {
-                  "Ref": "AWS::URLSuffix"
-                },
-                "/dev"
-              ]
-            ]
-          },
-          "Export": {
-            "Name": "sls-conversion-dev-ServiceEndpoint"
-          }
-        }
-      }
-    }
+    "serviceProviderAwsCfStackId": null,
+    "serviceProviderAwsCfStackCreated": null,
+    "serviceProviderAwsCfStackUpdated": null,
+    "serviceProviderAwsCfStackStatus": null,
+    "serviceProviderAwsCfStackOutputs": null
   }
 }

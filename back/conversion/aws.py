@@ -84,7 +84,6 @@ def lambda_handler(event, context):
         hash = str(uuid.uuid4())
 
         s3_key = f'diagrama-{user_id}-{hash}.png'
-        bucket_name = 'cad-diagrams'
         s3_client.upload_file(tmpfile_path, bucket_name, s3_key)
             
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"

@@ -35,7 +35,7 @@
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
-                "ImageUri": "254780740814.dkr.ecr.us-east-1.amazonaws.com/serverless-conversion-dev@sha256:48106c86b84e5836423ae8e4e9ce1fc0b302c70b1de46db6bc994813511c209b"
+                "ImageUri": "254780740814.dkr.ecr.us-east-1.amazonaws.com/serverless-conversion-dev@sha256:ed80050ffe69f8f3a45e7081411a0060a2f95966ea5942568531976ae6577b4d"
               },
               "PackageType": "Image",
               "FunctionName": "conversion-dev-conversion-aws",
@@ -47,14 +47,14 @@
               "ConversionDashawsLogGroup"
             ]
           },
-          "ConversionDashawsLambdaVersiondvMrSuazvLSNTrr3LqaDA7py0ewIk4lcXk1vl1lsifs": {
+          "ConversionDashawsLambdaVersionAP3IjKsxgRLqYpKDQDkwY916qfgWdzunwRXF8pCJQA": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ConversionDashawsLambdaFunction"
               },
-              "CodeSha256": "48106c86b84e5836423ae8e4e9ce1fc0b302c70b1de46db6bc994813511c209b"
+              "CodeSha256": "ed80050ffe69f8f3a45e7081411a0060a2f95966ea5942568531976ae6577b4d"
             }
           },
           "ApiGatewayRestApi": {
@@ -187,7 +187,7 @@
               "ConversionDashawsLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1750640254317": {
+          "ApiGatewayDeployment1750645117861": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -248,7 +248,7 @@
           "ConversionDashawsLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ConversionDashawsLambdaVersiondvMrSuazvLSNTrr3LqaDA7py0ewIk4lcXk1vl1lsifs"
+              "Ref": "ConversionDashawsLambdaVersionAP3IjKsxgRLqYpKDQDkwY916qfgWdzunwRXF8pCJQA"
             },
             "Export": {
               "Name": "sls-conversion-dev-ConversionDashawsLambdaFunctionQualifiedArn"
@@ -321,7 +321,7 @@
         "memory": 1024,
         "timeout": 30,
         "vpc": {},
-        "versionLogicalId": "ConversionDashawsLambdaVersiondvMrSuazvLSNTrr3LqaDA7py0ewIk4lcXk1vl1lsifs"
+        "versionLogicalId": "ConversionDashawsLambdaVersionAP3IjKsxgRLqYpKDQDkwY916qfgWdzunwRXF8pCJQA"
       }
     },
     "configValidationMode": "warn",
@@ -342,7 +342,7 @@
     "layers": {}
   },
   "package": {
-    "artifactDirectoryName": "serverless/conversion/dev/1750640258702-2025-06-23T00:57:38.702Z",
+    "artifactDirectoryName": "serverless/conversion/dev/1750645124660-2025-06-23T02:18:44.660Z",
     "artifact": ""
   }
 }
