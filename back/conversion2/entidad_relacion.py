@@ -78,7 +78,9 @@ def lambda_handler(event, context):
                 }
             # Subir a S3
             s3 = boto3.client("s3")
-            s3_key = f"er-diagrama-{user_id}.png"
+            import uuid
+            safe_user_id = user_id.replace('@', '_').replace('.', '_')
+            s3_key = f"er-diagrama-{safe_user_id}-{uuid.uuid4()}.png"
             print(f"Subiendo el archivo {output_path} a S3 con la clave {s3_key}")
             s3.upload_file(
                 output_path,

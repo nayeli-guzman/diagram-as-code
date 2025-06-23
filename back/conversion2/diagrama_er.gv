@@ -1,0 +1,18 @@
+
+      graph {
+         graph [rankdir=LR];
+         node [label="\N",
+             shape=plaintext
+         ];
+         edge [color=gray50,
+             minlen=2,
+             style=dashed
+         ];
+      
+"comments" [label=<<FONT FACE="Helvetica"><TABLE BORDER="0" CELLBORDER="1" CELLPADDING="4" CELLSPACING="0"><TR><TD><B><FONT POINT-SIZE="16">comments</FONT></B></TD></TR><TR><TD ALIGN="LEFT" PORT="id"><u><FONT>id</FONT></u> <FONT> [INTEGER]</FONT></TD></TR><TR><TD ALIGN="LEFT" PORT="comment"><FONT>comment</FONT> <FONT> [TEXT]</FONT></TD></TR><TR><TD ALIGN="LEFT" PORT="post_id"><FONT>post_id</FONT> <FONT> [INTEGER]</FONT></TD></TR><TR><TD ALIGN="LEFT" PORT="user_id"><FONT>user_id</FONT> <FONT> [INTEGER]</FONT></TD></TR></TABLE></FONT>>];
+"posts" [label=<<FONT FACE="Helvetica"><TABLE BORDER="0" CELLBORDER="1" CELLPADDING="4" CELLSPACING="0"><TR><TD><B><FONT POINT-SIZE="16">posts</FONT></B></TD></TR><TR><TD ALIGN="LEFT" PORT="id"><u><FONT>id</FONT></u> <FONT> [INTEGER]</FONT></TD></TR><TR><TD ALIGN="LEFT" PORT="content"><FONT>content</FONT> <FONT> [TEXT]</FONT></TD></TR><TR><TD ALIGN="LEFT" PORT="title"><FONT>title</FONT> <FONT> [VARCHAR]</FONT></TD></TR><TR><TD ALIGN="LEFT" PORT="user_id"><FONT>user_id</FONT> <FONT> [INTEGER]</FONT></TD></TR></TABLE></FONT>>];
+"users" [label=<<FONT FACE="Helvetica"><TABLE BORDER="0" CELLBORDER="1" CELLPADDING="4" CELLSPACING="0"><TR><TD><B><FONT POINT-SIZE="16">users</FONT></B></TD></TR><TR><TD ALIGN="LEFT" PORT="id"><u><FONT>id</FONT></u> <FONT> [INTEGER]</FONT></TD></TR><TR><TD ALIGN="LEFT" PORT="name"><FONT>name</FONT> <FONT> [VARCHAR]</FONT></TD></TR></TABLE></FONT>>];
+"users":"id" -- "comments":"user_id" [taillabel=<<FONT>{0,1}</FONT>>,headlabel=<<FONT>0..N</FONT>>];
+"posts":"id" -- "comments":"post_id" [taillabel=<<FONT>{0,1}</FONT>>,headlabel=<<FONT>0..N</FONT>>];
+"users":"id" -- "posts":"user_id" [taillabel=<<FONT>{0,1}</FONT>>,headlabel=<<FONT>0..N</FONT>>];
+}
