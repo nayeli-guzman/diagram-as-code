@@ -14,6 +14,8 @@ import json
 import boto3
 import os
 import re
+import uuid
+
 
 user_validar = f"diagram-usuarios-dev-validar"
 bucket_name = "cad-diagrams"
@@ -67,52 +69,24 @@ def lambda_handler(event, context):
             'os': os,
         }
 
-        print(safe_locals)
         modified_code = re.sub(r"^with Diagram\([^\)]*\):\n", 
                       r"with Diagram('gen', show=False, outformat='png', filename='/tmp/diagrama'):\n", 
                       code, flags=re.MULTILINE)
         
         print(modified_code)
-        print("Files in /tmp:", os.listdir("/tmp"))
 
         exec(modified_code, {}, safe_locals)
         print("Files in /tmp:", os.listdir("/tmp"))
 
+        print("success!!")
 
-        print(safe_locals)
-
-        directory = '.'  # "." se refiere al directorio actual
-
-        # Lista los archivos en el directorio actual
-        files = os.listdir(directory)
-
-        # Imprime los nombres de los archivos
-        for file in files:
-            print(f"File: {file}")
-
-        print("SUCCESS")
-
-        print("Files in /tmp:", os.listdir("/tmp"))
-
-        #with NamedTemporaryFile(delete=False, suffix=".png", dir='/tmp') as tmpfile:
-        print("GG")
-        tmpfile_path = "/tmp/diagrama.png" #tmpfile.name 
-        print(f"Saving diagram to {tmpfile_path}")
+        tmpfile_path = "/tmp/diagrama.png"
         s3_client = boto3.client('s3')
-        s3_key = f'diagrama-{user_id}.png'
+        hash = str(uuid.uuid4())
+
+        s3_key = f'diagrama-{user_id}-{hash}.png'
         bucket_name = 'cad-diagrams'
         s3_client.upload_file(tmpfile_path, bucket_name, s3_key)
-        print(s3_key)
-
-        directory = '.'  # "." se refiere al directorio actual
-
-        # Lista los archivos en el directorio actual
-        files = os.listdir(directory)
-
-        # Imprime los nombres de los archivos
-        for file in files:
-            print(f"File: {file}")
-        
             
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
         print(f"Image URL: {image_url}")
