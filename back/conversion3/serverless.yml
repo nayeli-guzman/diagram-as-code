@@ -17,14 +17,15 @@ provider:
   ecr:
     images:
       generate-diagram:
-        path: . # Debe usarse en minúsculas y con guiones
+        path: .
 
 functions:
   generate-diagram:
     image:
-      name: generate-diagram # ahora cumple /^[a-z][a-z0-9-_]{1,31}$/
+      name: generate-diagram
     events:
       - http:
           path: /generate-diagram
           method: post
           cors: true
+          integration: lambda-proxy

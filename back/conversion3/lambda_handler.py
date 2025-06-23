@@ -8,6 +8,9 @@ from datetime import datetime
 import uuid
 from graphviz import Digraph
 
+user_validar = f"diagram-usuarios-dev-validar"
+bucket_name = "cad-diagrams"
+
 def json_to_graph(data, graph=None, parent=None, level=0):
     """Convierte estructura JSON a grafo de Graphviz"""
     
@@ -77,9 +80,7 @@ def generar_diagrama_json_lambda(data, title="Diagrama JSON"):
     except Exception as e:
         raise Exception(f"Error generando diagrama: {str(e)}")
 
-def generar_estructura_ecommerce():
-    """Genera un diagrama de estructura JSON simple para un sistema de ecommerce"""
-    
+def generate_random():
     return {
         "Tienda_Online": {
             "Usuarios": {
@@ -135,10 +136,31 @@ def upload_to_s3(image_bytes, bucket_name, title="diagram"):
         }
 
 def lambda_handler(event, context):
-    """Handler principal de AWS Lambda"""
     
+    print(event)
+    body =  json.loads(event['body'])
+    
+    # Inicio - Proteger el Lambda
+    token = event['headers']['Authorization']
+    tenant_id = body['tenant_id']
+    user_id = body['user_id']
+ 
+    lambda_client = boto3.client('lambda')    
+    payload = {
+    "token": token,
+    "tenant_id": tenant_id
+    }
+    invoke_response = lambda_client.invoke(FunctionName=user_validar,
+                                           InvocationType='RequestResponse',
+                                           Payload = json.dumps(payload))
+    response = json.loads(invoke_response['Payload'].read())
+    print(response)
+    if response['statusCode'] == 403:
+        return {
+            'statusCode' : 403,
+            'status' : 'Forbidden - Acceso No Autorizado'
+        }
     try:
-        # Parsear el body del request
         if 'body' in event:
             if isinstance(event['body'], str):
                 body = json.loads(event['body'])
@@ -147,12 +169,10 @@ def lambda_handler(event, context):
         else:
             body = {}
         
-        # Obtener datos JSON del request o usar ejemplo por defecto
         if 'data' in body:
             json_data = body['data']
         else:
-            # Si no se envían datos, usar estructura de ecommerce por defecto
-            json_data = generar_estructura_ecommerce()
+            json_data = generate_random()
         
         # Obtener título opcional
         title = body.get('title', 'Estructura JSON')
