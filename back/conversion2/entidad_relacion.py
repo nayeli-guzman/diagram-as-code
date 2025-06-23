@@ -91,8 +91,13 @@ def lambda_handler(event, context):
             image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
             return {
                 'statusCode': 200,
-                'body': json.dumps({'imageUrl': image_url}),
-                'headers': {'Content-Type': 'application/json'}
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+                },
+                'body': json.dumps({'imageUrl': image_url})
             }
 
         # Si es una URL SQLAlchemy (sqlite://, mysql://, etc.)
@@ -165,8 +170,13 @@ def lambda_handler(event, context):
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
         return {
             'statusCode': 200,
-            'body': json.dumps({'imageUrl': image_url}),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS'
+            },
+            'body': json.dumps({'imageUrl': image_url})
         }
 
     except Exception as e:
