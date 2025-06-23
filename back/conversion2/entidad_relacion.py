@@ -80,7 +80,12 @@ def lambda_handler(event, context):
             s3 = boto3.client("s3")
             s3_key = f"er-diagrama-{user_id}.png"
             print(f"Subiendo el archivo {output_path} a S3 con la clave {s3_key}")
-            s3.upload_file(output_path, bucket_name, s3_key)
+            s3.upload_file(
+                output_path,
+                bucket_name,
+                s3_key,
+                ExtraArgs={'ContentType': 'image/png', 'ACL': 'public-read'}
+            )
             image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
             return {
                 'statusCode': 200,
@@ -149,7 +154,12 @@ def lambda_handler(event, context):
         s3 = boto3.client("s3")
         s3_key = f"er-diagrama-{user_id}.png"
         print(f"Subiendo el archivo {output_path} a S3 con la clave {s3_key}")
-        s3.upload_file(output_path, bucket_name, s3_key)
+        s3.upload_file(
+            output_path,
+            bucket_name,
+            s3_key,
+            ExtraArgs={'ContentType': 'image/png', 'ACL': 'public-read'}
+        )
         image_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
         return {
             'statusCode': 200,
