@@ -118,6 +118,9 @@ def lambda_handler(event, context):
                 match = re.match(r"sqlite:///(.*)", body["dsl"].strip())
                 if match:
                     db_path = match.group(1)
+                    # Si la ruta no es absoluta, ponerla en /tmp
+                    if not db_path.startswith("/"):
+                        db_path = f"/tmp/{db_path}"
                     if not os.path.exists(db_path):
                         print(f"No existe {db_path}, creando base de datos de ejemplo...")
                         conn = sqlite3.connect(db_path)
@@ -125,6 +128,8 @@ def lambda_handler(event, context):
                         cursor.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name VARCHAR)''')
                         conn.commit()
                         conn.close()
+                    # Actualizar la URL para que apunte a /tmp
+                    body["dsl"] = f"sqlite:///{db_path}"
             try:
                 render_er(body["dsl"], output_path)  # Pasar URL directamente
             except Exception as e:
